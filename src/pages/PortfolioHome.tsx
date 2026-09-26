@@ -237,7 +237,7 @@ export default function PortfolioHome() {
         <div>
           <p className="font-inter text-xs font-semibold uppercase text-ink-muted">Workspace</p>
           <h1 className="mt-1 font-display text-3xl font-semibold text-ink">Portfolio</h1>
-          <p className="mt-1 font-inter text-sm text-ink-muted">A live view of every project you’re tracking.</p>
+          <p className="mt-1 font-inter text-sm text-ink-muted">A live view of every project you’re tracking — your ducklings, at a glance.</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -367,8 +367,8 @@ export default function PortfolioHome() {
 
       {entries !== null && entries.length === 0 && !onboarding && (
         <div className="card mt-6 text-center">
-          <p className="text-lg font-medium">Register your first project</p>
-          <p className="mt-1 text-sm text-ink-muted">Name-only is enough — you can connect live data right after.</p>
+          <p className="text-lg font-medium text-ink">Add your first duckling 🐣</p>
+          <p className="mt-1 text-sm text-ink-muted">A name is enough for now — you can connect live data right after.</p>
           <Link to="/projects/new" className="btn-primary mt-4 inline-block">
             Add project
           </Link>

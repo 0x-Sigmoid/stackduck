@@ -21,7 +21,7 @@ The frontend can be explored without connecting project data. Connector and auth
 For the new NestJS backend (`backend/`), which runs independently of Firebase:
 
 1. Start a local TimescaleDB: `docker compose -f backend/docker-compose.yml up -d` (Docker must be running).
-2. `cd backend` and `npm ci`, then copy `backend/.env.example` to `backend/.env` and fill in `CREDENTIALS_ENCRYPTION_KEY`, `JWT_ACCESS_SECRET`, and `JWT_REFRESH_SECRET`. Never commit `.env`.
+2. `cd backend` and `npm ci`, then copy `backend/.env.example` to `backend/.env` and fill in `CREDENTIALS_ENCRYPTION_KEY` and `JWT_ACCESS_SECRET`. Never commit `.env`.
 3. `npm run start:dev` serves the API on port 3001 (`/v1/health`).
 
 See [backend/README.md](backend/README.md) for endpoints and smoke tests.

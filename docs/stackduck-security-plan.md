@@ -60,12 +60,13 @@ Written after the pivot decision from Firebase to a self-managed NestJS + Postgr
 
 - A basic plan for "what do I actually do if something is compromised": rotate JWT signing secret (invalidates all sessions), rotate database credentials, check logs for the access pattern, notify affected users if credential data was exposed — doesn't need to be elaborate, just needs to exist as a written checklist rather than being figured out during a live incident
 
-## 9. Open Items From This Plan
+## 9. Open Items From This Plan (reviewed — implemented items marked)
 
 - [x] **Decided:** credential encryption for Postgres — application-level AES-256-GCM in an encrypted column ([D29](../DECISIONS.md)), replacing the earlier standalone-Secret-Manager option. See §2 for the rotation/backup consequences that decision created.
 - [x] **Provisioned:** Postgres hosting — Railway, using their **TimescaleDB** marketplace template ([D32](../DECISIONS.md); Railway's plain Postgres templates ship no extensions, and the metric hypertable depends on it). Disk-level encryption-at-rest still needs confirming against Railway's docs rather than assumed — see §2.
+- [x] **Done:** `SECURITY.md` and repo-root security policy (private advisory reporting, 7-day acknowledgement).
+- [x] **Done:** Dependabot config (`.github/dependabot.yml`) plus `npm audit --audit-level=high` in `.github/workflows/ci.yml`.
+- [x] **Done:** `helmet` middleware (HSTS, restrictive CSP, frameguard deny, noSniff, no-referrer) in `backend/src/main.ts`; CORS explicit allowlist; auth/ingest rate limits active via global `ThrottlerGuard` (`auth`/`signup` buckets on login/refresh/register); `JWT_REFRESH_SECRET` removed because refresh tokens are opaque+hashed, not signed.
+- [x] **Done:** OAuth `state` issued and verified before the code exchange (signed purpose+provider+nonce claim, browser-bound cookie) for sign-in and import flows; single-use import tokens and user-bound state for the import callbacks.
+- [x] **Done:** webhook replay window (`checkTimestampWindow`, 5-minute tolerance) plus explicit raw-body limits (`100kb` ingest, `256kb` Stripe, 413 envelope).
 - [ ] Implement the connector-credential key rotation this decision requires (re-encrypt rows, or accept reconnection on rotation)
-- [ ] Write the actual `SECURITY.md` and repo-root security policy
-- [ ] Set up Dependabot/Renovate on the GitHub repo
-- [ ] Helmet-equivalent security headers (`@nestjs/helmet`) — listed in §3, not yet applied
-- [ ] Rate limit the auth endpoints specifically (§1) separately from the general ingest/API limits
