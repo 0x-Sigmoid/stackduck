@@ -20,56 +20,35 @@ Connector availability depends on the integration; see the app's connector catal
 
 ## Stack
 
-This repository currently carries two backends while the migration completes.
-
-**Live today** — the frontend still talks to this one:
-
 - **Frontend:** React, TypeScript, Vite, and Tailwind CSS v4
-- **Backend/API:** Firebase Cloud Functions with TypeScript and Express
-- **Data:** Firestore for the project catalog and time-series metric buckets
-- **Authentication:** Firebase Auth
-- **Hosting:** Firebase Hosting, or any static host that can serve the Vite build
-
-**New backend** — built, typechecked, and documented in [`backend/`](backend/), not yet cut over:
-
-- **Backend/API:** NestJS with TypeScript
-- **Data:** PostgreSQL with the TimescaleDB extension. Metric points are written to a hypertable and rollups use `time_bucket()`, replacing the Firestore daily-bucket documents
+- **Backend/API:** NestJS with TypeScript — [`backend/`](backend/)
+- **Data:** PostgreSQL with the TimescaleDB extension. Metric points are written to a hypertable and rollups use `time_bucket()`
 - **Authentication:** NestJS passport strategies (email/password, Google, GitHub) issuing short-lived JWT access tokens plus rotating refresh tokens
 - **Connector credentials:** encrypted at the application layer (AES-256-GCM) in Postgres columns
 - **Hosting:** Railway, using their TimescaleDB template — Railway's plain Postgres templates ship no extensions
 - **Email:** Resend, for alert delivery
 
-The frontend is deliberately unchanged by the pivot; only its data-fetching layer moves from Firebase SDK calls to REST calls.
+Firebase remains in this project only as a **connector** — an integration that lets users monitor *their own* Firebase projects. Stackduck itself is served entirely by the NestJS API; there is no Firebase SDK, config, or Cloud Functions dependency anywhere in the app.
 
 ## Run locally
 
-Requirements: Node.js 20 or newer, npm, and a Firebase project for authenticated and data-connected flows.
+Requirements: Node.js 20 or newer, npm.
 
 ```sh
 npm ci
 ```
 
-Copy `.env.example` to `.env`, then fill in the Firebase web-app configuration for your own project. Start the frontend:
+Copy `.env.example` to `.env` (it points at the API), then start the frontend:
 
 ```sh
 npm run dev
 ```
 
-The UI can be explored without deploying Cloud Functions. Authentication and project data require Firebase Auth and Firestore configuration; connector setup, signed ingest, polling, and reconciliation require the backend functions and the relevant provider credentials.
+The UI can be explored without the API, but authentication and project data need the NestJS backend running — see below.
 
-For local backend development, install function dependencies and start the configured emulators:
+### Backend
 
-```sh
-cd functions
-npm ci
-npm run serve
-```
-
-Configure Firebase CLI and emulator project settings for your environment. Never commit `.env`, service-account files, provider credentials, or webhook signing secrets.
-
-### The new backend
-
-The NestJS + Postgres/TimescaleDB API lives in `backend/` and runs independently of Firebase. It needs a Postgres instance with the TimescaleDB extension:
+The NestJS + Postgres/TimescaleDB API lives in `backend/`. It needs a Postgres instance with the TimescaleDB extension:
 
 ```sh
 docker compose -f backend/docker-compose.yml up -d   # local TimescaleDB (Docker must be running)
@@ -109,20 +88,12 @@ From the repository root, verify the frontend with:
 ```sh
 npm run lint
 npm run build
-npm --prefix functions run build
 npm --prefix backend run build
 ```
 
-Deploy only after selecting and configuring your own Firebase project. Hosting and Firestore rules can be deployed independently; Cloud Functions that use Secret Manager or scheduled jobs may require the Firebase Blaze plan and appropriate Google Cloud APIs and permissions.
+### Deploying the API
 
-```sh
-firebase deploy --only firestore:rules
-firebase deploy --only functions,hosting
-```
-
-### Deploying the new backend
-
-Until the cutover, only one backend serves live traffic. The steps for standing up the NestJS API are in [backend/RAILWAY.md](backend/RAILWAY.md): provision the **TimescaleDB** template (not plain Postgres), set the environment variables on the API service, and point a staging domain at it. Keep the live app on Firebase and keep OAuth callbacks on the staging URL until the frontend cutover is deliberate.
+The steps for standing up the NestJS API are in [backend/RAILWAY.md](backend/RAILWAY.md): provision the **TimescaleDB** template (not plain Postgres), set the environment variables on the API service, and point a domain at it. Point the frontend at that API with `VITE_API_BASE`.
 
 ## Project documentation
 

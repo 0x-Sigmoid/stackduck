@@ -3,18 +3,8 @@ node_modules/
 dist/
 dist-ssr/
 
-# firebase
-.firebase/
-.firebaserc.local
-firestore-debug.log
-ui-debug.log
-firebase-debug.log
+# logs (build, debug, capture — never commit)
 *.log
-
-# functions
-functions/node_modules/
-functions/lib/
-functions/*.log
 
 # vite
 *.local

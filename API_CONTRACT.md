@@ -20,7 +20,7 @@ these differences:
 - **Scheduled work:** `/v1/internal/jobs/*` can run polling and alert evaluation on demand when
   `JOBS_TRIGGER_SECRET` is set; otherwise those routes 404.
 
-Everything below describes the Firebase backend, which still serves live traffic until Phase 3/4 completes.
+Everything below describes the **retired** Firebase backend. The `functions/` implementation and Firebase config were removed from this repository; the doc survives as historical design reference, since the NestJS API mirrors these route shapes.
 
 Base URL (emulator): `http://localhost:5001/proxibay-dev/europe-west1/api`
 Base URL (prod): `https://europe-west1-proxibay-dev.cloudfunctions.net/api`
