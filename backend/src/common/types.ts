@@ -40,6 +40,7 @@ export interface NormalizedEvent {
   key: string;
   value: number;
   timestamp: Date;
+  aggregation?: 'sum' | 'last';
   metadata?: Record<string, string | number | boolean>;
 }
 

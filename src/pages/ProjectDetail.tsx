@@ -192,7 +192,7 @@ export default function ProjectDetail() {
         api<ProjectListEntry>(`/v1/projects/${projectId}`),
         api<{ connectors: ConnectorInstance[] }>(`/v1/projects/${projectId}/connectors`),
         api<{ rules: AlertRule[] }>(`/v1/projects/${projectId}/alerts`),
-        api<{ keys: Array<{ metricType: MetricType; key: string }> }>(`/v1/projects/${projectId}/metric-keys`),
+        api<{ keys: Array<{ metricType: MetricType; key: string }> }>(`/v1/projects/${projectId}/metrics/metric-keys`),
       ])
       setEntry(detail)
       setConnectors(conns.connectors)

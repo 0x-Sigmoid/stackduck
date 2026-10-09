@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
+import { metricAggregation } from '../common/metric-aggregation';
 import type { NormalizedEvent } from '../common/types';
 import { MetricPoint } from '../entities/metric-point.entity';
 
@@ -23,6 +24,7 @@ export class MetricsService {
         projectId: e.projectId, connectorId: e.connectorId,
         metricType: e.metricType, key: e.key, value: e.value,
         timestamp: e.timestamp, metadata: e.metadata ?? null,
+        aggregation: e.aggregation ?? metricAggregation(e.metricType, e.key),
       }),
     );
     await this.points.save(rows, { chunk: 500 });
@@ -73,7 +75,7 @@ export class MetricsService {
   /** Raw points for one key in [from, to] (cap 5000, newest last). */
   async rawPoints(projectId: string, metricType: string, key: string, from: Date, to: Date, limit = 5000) {
     return this.points.find({
-      where: { projectId, metricType: metricType as never, key },
+      where: { projectId, metricType: metricType as never, key, timestamp: Between(from, to) },
       order: { timestamp: 'ASC' },
       take: Math.min(limit, 5000),
     });
@@ -91,18 +93,28 @@ export class MetricsService {
     return rows as Array<{ metricType: string; key: string; value: number; at: Date }>;
   }
 
-  /** Aggregate over the alert window: sum for counts, latest for gauges. */
-  async windowAggregate(projectId: string, metricType: string, key: string, since: Date): Promise<{ sum: number; last: number; count: number }> {
+  /** Sum event increments plus the latest snapshot per connector in the window. */
+  async windowAggregate(
+    projectId: string, metricType: string, key: string, since: Date, until = new Date(),
+  ): Promise<{ sum: number; last: number; count: number; value: number }> {
     const rows = await this.points.query(
-      `SELECT COALESCE(SUM("value"), 0) AS "sum", COUNT(*)::int AS "count",
-              COALESCE((SELECT "value" FROM "metric_points"
-                         WHERE "project_id" = $1 AND "metric_type" = $2 AND "key" = $3 AND "timestamp" >= $4
-                         ORDER BY "timestamp" DESC LIMIT 1), 0) AS "last"
-         FROM "metric_points"
-        WHERE "project_id" = $1 AND "metric_type" = $2 AND "key" = $3 AND "timestamp" >= $4`,
-      [projectId, metricType, key, since.toISOString()],
+      `WITH window_points AS (
+         SELECT * FROM metric_points
+          WHERE project_id = $1 AND metric_type = $2 AND key = $3
+            AND timestamp >= $4 AND timestamp <= $5
+       ), snapshots AS (
+         SELECT DISTINCT ON (connector_id) value FROM window_points
+          WHERE aggregation = 'last'
+          ORDER BY connector_id, timestamp DESC, id DESC
+       )
+       SELECT COALESCE(SUM(value), 0) AS sum, COUNT(*)::int AS count,
+              COALESCE((SELECT value FROM window_points ORDER BY timestamp DESC, id DESC LIMIT 1), 0) AS last,
+              COALESCE(SUM(value) FILTER (WHERE aggregation = 'sum'), 0) +
+                COALESCE((SELECT SUM(value) FROM snapshots), 0) AS value
+         FROM window_points`,
+      [projectId, metricType, key, since.toISOString(), until.toISOString()],
     );
-    const r = (rows as Array<{ sum: string; count: number; last: string }>)[0];
-    return { sum: Number(r.sum), last: Number(r.last), count: r.count };
+    const r = (rows as Array<{ sum: string; count: number; last: string; value: string }>)[0];
+    return { sum: Number(r.sum), last: Number(r.last), count: r.count, value: Number(r.value) };
   }
 }

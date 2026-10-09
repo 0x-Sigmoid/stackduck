@@ -1,7 +1,7 @@
 # Stackduck backend — NestJS API + PostgreSQL/TimescaleDB (Phase 1)
 
-Self-managed replacement for Firebase (Firestore + Firebase Auth + Cloud Functions).
-The frontend stays untouched until Phase 3; this builds the full API first.
+The React frontend uses this API for authentication, projects, metrics, and alerts.
+PostgreSQL stores application data; TimescaleDB supplies time-series bucketing and retention.
 
 ## Layout
 
@@ -46,25 +46,47 @@ set `REQUIRE_TIMESCALE=true` to fail fast instead. Hosting is decided: Railway
 using their **TimescaleDB** template — see [RAILWAY.md](RAILWAY.md).
 
 Alert email is delivered by Resend: set `RESEND_API_KEY` and `ALERT_FROM_EMAIL`
-to enable it. With the key absent the evaluation job logs
-`EMAIL (unsent — no RESEND_API_KEY)` rather than pretending to notify, so a local
-run is never mistaken for a delivered alert. `smoke:email` performs the real send.
+to enable it. Without the key, the rule can still be marked breached, but email
+delivery fails without consuming its notification cooldown. `smoke:email` performs
+the real send.
 
-## Verification (no Docker on this machine — Docker Desktop daemon is down)
+## Database migrations and verification
 
-- `tsc --noEmit` passes (0 errors).
-- `scripts/unit-check.cjs` passes 8/8 (Stripe/webhook signatures, AES round-trip + tamper, cents→major).
-- DB-backed boot (`synchronize` + hypertable creation) and the migration script
-  are written but **not yet run** — they need a live Postgres. Next step on a
-  machine with Docker running: `docker compose -f backend/docker-compose.yml up -d`
-  then `npm run start:dev`, then exercise register → project → connector →
-  ingest → metrics → alerts.
+Schema synchronization is disabled. Development applies versioned migrations at
+startup. In production, set `NODE_ENV=production`, back up the database, then run
+`npm run build` and `npm run migrate:prod` before `npm run start:prod`.
+The API refuses to start with pending migrations. `npm run migrate:run` runs
+the same migrations from TypeScript during development.
+
+The baseline supports fresh databases and adopts existing tables created by the
+previous synchronization setup. The reliability migration preserves metric rows,
+changes the metric primary key to `(id, timestamp)`, classifies existing built-in
+snapshots, and adds current alert breach state. Timescale conversion uses
+`migrate_data => TRUE` so existing rows survive conversion. Migrations are
+forward-only; use a database backup for rollback.
+
+Run `npm test` for production-service regression tests. Database-backed API tests
+run when `TEST_DATABASE_URL` points to a **disposable** database named
+`stackduck_test_*`. The test user must be able to create another disposable
+database for the legacy-upgrade check. Set `TEST_REQUIRE_TIMESCALE=true` to also
+require successful hypertable creation; CI runs that mode on TimescaleDB.
+
+```powershell
+$env:TEST_DATABASE_URL="postgres://stackduck:stackduck@localhost:5433/stackduck_test_local"
+$env:TEST_REQUIRE_TIMESCALE="true"
+npm test
+```
+
+Tests cover fresh and existing schemas, signed ingestion, the frontend metric-key
+route, daily headline values, snapshot aggregation, real webhook delivery,
+cooldowns, current breach/resolution state, and blocked private destinations.
+They do not contact connector providers or send real emails.
 
 ## Smoke tests (run these, don't trust a compile)
 
 | Command | What it proves |
 | --- | --- |
-| `npm run smoke:unit` | Signature + encryption vectors (no DB/network needed) |
+| `npm run smoke:unit` | Production signature + encryption checks (no DB/network needed) |
 | `npm run smoke:local` | register → project → webhook connector → signed ingest → metrics read-back |
 | `npm run smoke:alerts` | alert rule → evaluation → webhook delivery → cooldown blocks re-fire |
 | `npm run smoke:email` | **real** Resend send (needs `RESEND_API_KEY` + `ALERT_TO`) |
@@ -73,7 +95,21 @@ run is never mistaken for a delivered alert. `smoke:email` performs the real sen
 API must run with `JOBS_TRIGGER_SECRET` set — that enables
 `POST /v1/internal/jobs/{evaluate-alerts,poll-providers,reconcile-stripe}`
 so the 5-minute job can be triggered on demand instead of waited on. The routes
-404 when `JOBS_TRIGGER_SECRET` is empty, so production stays unaffected.
+404 when `JOBS_TRIGGER_SECRET` is empty.
+
+Alert webhook targets require HTTPS and exclusively public DNS answers. Delivery
+pins the validated IP and rejects redirects. For the loopback receiver used by
+`smoke:alerts`, set `ALLOW_LOCAL_ALERT_WEBHOOKS=true` on the local API.
+This exception only permits literal loopback addresses and is never honored
+when `NODE_ENV=production`.
+
+Metric ingestion accepts optional `aggregation: "sum" | "last"`: use `sum` for
+event increments (such as signups) and `last` for snapshots (such as queue depth
+or a rolling 24-hour error count). Built-in providers declare or infer their
+aggregation; unknown webhook keys default to `sum`. Alerts sum increments and
+take the latest snapshot per connector inside the evaluation window. Missing
+samples are unknown and do not create a zero-valued alert. A resolved rule clears
+its current breach state even during notification cooldown.
 
 ## Hosting — Railway
 

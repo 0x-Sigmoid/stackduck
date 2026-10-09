@@ -18,6 +18,9 @@ export class TimescaleSetupService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    if (await this.dataSource.showMigrations()) {
+      throw new Error('Pending database migrations. Run npm run migrate:prod before starting the production API.');
+    }
     await this.dataSource.query('CREATE EXTENSION IF NOT EXISTS "citext"').catch((e) => {
       this.logger.warn(`citext extension unavailable: ${(e as Error).message}`);
     });
@@ -30,7 +33,7 @@ export class TimescaleSetupService implements OnModuleInit {
       );
       if (!tables[0]?.exists) {
         await this.dataSource.query(
-          `SELECT create_hypertable('metric_points', 'timestamp', if_not_exists => TRUE)`,
+          `SELECT create_hypertable('metric_points', 'timestamp', if_not_exists => TRUE, migrate_data => TRUE)`,
         );
         this.logger.log('metric_points converted to a TimescaleDB hypertable.');
       }

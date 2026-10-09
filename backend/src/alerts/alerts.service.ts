@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import { postWebhook } from './webhook-target';
 import { AlertRule } from '../entities/alert-rule.entity';
 import { MetricsService } from '../metrics/metrics.service';
 
@@ -18,11 +19,14 @@ export class AlertsService {
   private readonly logger = new Logger(AlertsService.name);
   private readonly resend: Resend | null;
   private readonly fromEmail: string;
+  private readonly allowLocalWebhooks: boolean;
   constructor(
     @InjectRepository(AlertRule) private readonly rules: Repository<AlertRule>,
     private readonly metrics: MetricsService,
     config: ConfigService,
   ) {
+    this.allowLocalWebhooks = config.get<string>('NODE_ENV') !== 'production' &&
+      config.get<string>('ALLOW_LOCAL_ALERT_WEBHOOKS') === 'true';
     const apiKey = config.get<string>('RESEND_API_KEY') ?? '';
     this.fromEmail = config.get<string>('ALERT_FROM_EMAIL') ?? 'Stackduck <alerts@stackduck.app>';
     this.resend = apiKey ? new Resend(apiKey) : null;
@@ -31,16 +35,10 @@ export class AlertsService {
     }
   }
 
-  isGauge(metricType: string, key: string): boolean {
-    return (
-      /^(active_|total_|availability_|ready_|revenue_30d)/.test(key) ||
-      ['availability_percent', 'active_deployments', 'in_progress_workflow_runs'].includes(key) ||
-      metricType === 'uptime_metrics'
-    );
-  }
-
   async evaluateAll(now = new Date()): Promise<{ evaluated: number; triggered: number }> {
-    const rules = await this.rules.find({ where: { status: 'active' } });
+    const rules = await this.rules.find({
+      where: { status: 'active', project: { status: In(['active', 'paused']) } },
+    });
     let triggered = 0;
     for (const rule of rules) {
       try {
@@ -54,10 +52,16 @@ export class AlertsService {
 
   async evaluateOne(rule: AlertRule, now = new Date()): Promise<boolean> {
     const since = new Date(now.getTime() - rule.windowMinutes * 60000);
-    const agg = await this.metrics.windowAggregate(rule.projectId, rule.metricType, rule.key, since);
-    const value = this.isGauge(rule.metricType, rule.key) ? agg.last : agg.sum;
+    const agg = await this.metrics.windowAggregate(rule.projectId, rule.metricType, rule.key, since, now);
+    // Missing samples are unknown, not zero.
+    if (agg.count === 0) return false;
+    const value = agg.value;
     const fires = rule.condition === 'above' ? value > rule.threshold : value < rule.threshold;
-    if (!fires) return false; // resolves silently (Alerting Model §4)
+    if (!fires) {
+      if (rule.triggeredAt) await this.rules.update({ id: rule.id }, { triggeredAt: null });
+      return false;
+    }
+    if (!rule.triggeredAt) await this.rules.update({ id: rule.id }, { triggeredAt: now });
     if (rule.lastTriggeredAt && now.getTime() - rule.lastTriggeredAt.getTime() < rule.cooldownMinutes * 60000) {
       return false; // in cooldown
     }
@@ -74,13 +78,7 @@ export class AlertsService {
       value, at: new Date().toISOString(),
     };
     if (rule.channel === 'webhook') {
-      const res = await fetch(rule.channelTarget, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!res.ok) throw new Error(`webhook delivery ${res.status}`);
+      await postWebhook(rule.channelTarget, payload, this.allowLocalWebhooks);
     } else {
       await this.sendEmail(rule, value);
     }
@@ -96,7 +94,7 @@ export class AlertsService {
     ].join('');
     if (!this.resend) {
       this.logger.log(`EMAIL (unsent — no RESEND_API_KEY) to ${rule.channelTarget}: ${subject}`);
-      return;
+      throw new Error('Email delivery is not configured.');
     }
     const { error } = await this.resend.emails.send({
       from: this.fromEmail,

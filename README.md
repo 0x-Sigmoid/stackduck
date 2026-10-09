@@ -14,7 +14,7 @@ Stackduck is an open-source monitoring portfolio for developers who run more tha
 - Monitor Sentry errors, GitHub Actions runs, PostHog usage, Better Stack uptime, and Vercel deployments.
 - Compare project health, activity, users, and revenue in a portfolio view.
 - Save threshold alert rules; evaluation, cooldown, and email/webhook delivery all run in the new backend.
-- Sign in with email/password, Google, or GitHub. The live app still uses Firebase Auth until the frontend cutover.
+- Sign in with email/password, Google, or GitHub through the NestJS API.
 
 Connector availability depends on the integration; see the app's connector catalog for current status.
 
@@ -70,7 +70,8 @@ Run the checks that don't need a database:
 
 ```sh
 cd backend
-npm run smoke:unit     # signature + credential-encryption vectors
+npm test               # regression tests; API integration tests need TEST_DATABASE_URL
+npm run smoke:unit     # production signature + credential-encryption tests
 ```
 
 With the database and API running, these exercise the real flows end to end:

@@ -12,14 +12,7 @@ import { ConnectorsModule } from './connectors/connectors.module';
 import { CredentialsModule } from './credentials/credentials.module';
 import { AuditModule } from './common/audit.service';
 import { FeedbackModule } from './feedback/feedback.module';
-import { AlertRule } from './entities/alert-rule.entity';
-import { Connector } from './entities/connector.entity';
-import { Feedback } from './entities/feedback.entity';
-import { IntegrationToken } from './entities/integration-token.entity';
-import { MetricPoint } from './entities/metric-point.entity';
-import { PasswordResetToken } from './entities/password-reset.entity';
-import { Project } from './entities/project.entity';
-import { RefreshToken, User } from './entities/user.entity';
+import { databaseOptions } from './database/options';
 import { HealthController } from './health.controller';
 import { IngestModule } from './ingest/ingest.module';
 import { JobsModule } from './jobs/jobs.module';
@@ -41,14 +34,9 @@ import { ProjectsModule } from './projects/projects.module';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.get<string>('DATABASE_URL'),
-        entities: [User, RefreshToken, Project, Connector, MetricPoint, AlertRule, Feedback, IntegrationToken, PasswordResetToken],
-        synchronize: true,
-        // Railway's public TCP proxy needs TLS; internal service networking
-        // does not. Opt in with DATABASE_SSL=true (rejectUnauthorized off:
-        // managed certs, same posture as most PaaS clients).
-        ssl: config.get<string>('DATABASE_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+        ...databaseOptions(config),
+        // Production applies migrations explicitly before starting the API.
+        migrationsRun: config.get<string>('NODE_ENV') !== 'production',
       }),
     }),
     CredentialsModule,

@@ -24,6 +24,21 @@ jobs:
 
   backend:
     runs-on: ubuntu-latest
+    services:
+      timescaledb:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_USER: stackduck
+          POSTGRES_PASSWORD: stackduck
+          POSTGRES_DB: stackduck_test_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stackduck -d stackduck_test_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://stackduck:stackduck@127.0.0.1:5432/stackduck_test_ci
+      TEST_REQUIRE_TIMESCALE: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,6 +50,9 @@ jobs:
         working-directory: backend
       - name: Typecheck
         run: node node_modules/typescript/bin/tsc --noEmit
+        working-directory: backend
+      - name: Monitoring regressions and database-backed API flows
+        run: npm test
         working-directory: backend
       - name: Signature + encryption vectors
         run: node scripts/unit-check.cjs

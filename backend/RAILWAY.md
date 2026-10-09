@@ -16,14 +16,17 @@ use the **TimescaleDB template**, not the plain Postgres one).
    `SELECT * FROM pg_available_extensions WHERE name = 'timescaledb';`
    must return a row. If it doesn't, that service is plain Postgres —
    do not proceed; re-provision from the TimescaleDB template.
-4. The API's `TimescaleSetupService` runs `CREATE EXTENSION IF NOT EXISTS
-   timescaledb` + `create_hypertable('metric_points', …)` on boot, so no
-   manual DDL is needed once the template is correct.
+4. Run the versioned schema migrations before starting the production API
+   (see step 2). The API then creates the Timescale extension and converts
+   metric_points with its timestamp-inclusive primary key, preserving existing rows.
 
 ## 2. API service
 
 1. **New → GitHub Repo** (or Empty Service + `railway up`), root directory
    `backend/`. Build: `npm install && npm run build`. Start: `npm run start:prod`.
+   Run `npm run migrate:prod` as the release step after the build and before
+   starting the API. Set `NODE_ENV=production`; startup refuses pending migrations.
+   Back up existing databases before the first migration.
    Add `backend/railway.json` (nixpacks) if the UI asks for explicit commands.
 2. **Variables** (all in Railway → API service → Variables; nothing hardcoded,
    nothing committed — `.env` is gitignored and `.env.example` is the schema):

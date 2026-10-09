@@ -64,7 +64,7 @@ export class MetricsController {
         points: points
           .filter((pt) => pt.timestamp.toISOString().slice(0, 10) === b.date)
           .map((pt) => ({ time: pt.timestamp.toISOString(), value: pt.value })),
-        dailyAggregate: { sum: b.sum, avg: b.avg, max: b.max, min: b.min },
+        dailyAggregate: { sum: b.sum, avg: b.avg, max: b.max, min: b.min, last: b.last },
       })),
     };
   }

@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsArray, IsIn, IsOptional, IsString } from 'class-validator';
-import { Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
+import { AlertRule } from '../entities/alert-rule.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuditService } from '../common/audit.service';
 import { err } from '../common/errors';
@@ -43,6 +44,7 @@ export class ProjectsController {
     @InjectRepository(MetricPoint) private readonly points: Repository<MetricPoint>,
     private readonly metrics: MetricsService,
     private readonly audit: AuditService,
+    @InjectRepository(AlertRule) private readonly rules: Repository<AlertRule>,
   ) {}
 
   @Post()
@@ -69,6 +71,11 @@ export class ProjectsController {
     const where: Record<string, unknown> = { ownerId: req.user.userId };
     if (status && (STATUSES as readonly string[]).includes(status)) where['status'] = status;
     const projects = await this.projects.find({ where, order: { updatedAt: 'DESC' } });
+    const breached = projects.length ? await this.rules.find({
+      where: { projectId: In(projects.map((p) => p.id)), status: 'active', triggeredAt: Not(IsNull()) },
+      select: ['projectId'],
+    }) : [];
+    const breachedIds = new Set(breached.map((r) => r.projectId));
     return {
       projects: await Promise.all(projects.map(async (project) => {
         const conns = await this.connectors.find({ where: { projectId: project.id } });
@@ -77,7 +84,7 @@ export class ProjectsController {
         const keyMetrics = latest.slice(0, 3).map((m) => ({
           metricType: m.metricType, key: m.key, value: Number(m.value), at: m.at,
         }));
-        const homeStatus = projectHomeStatus({ hasTriggeredUnresolvedAlert: false, connectorStatuses });
+        const homeStatus = projectHomeStatus({ hasTriggeredUnresolvedAlert: breachedIds.has(project.id), connectorStatuses });
         return { project, connectorStatuses, keyMetrics, homeStatus };
       })),
     };
@@ -146,7 +153,10 @@ export class ProjectsController {
     const keyMetrics = latest.slice(0, 3).map((m) => ({
       metricType: m.metricType, key: m.key, value: Number(m.value), at: m.at,
     }));
-    const homeStatus = projectHomeStatus({ hasTriggeredUnresolvedAlert: false, connectorStatuses });
+    const hasTriggeredUnresolvedAlert = await this.rules.exists({
+      where: { projectId, status: 'active', triggeredAt: Not(IsNull()) },
+    });
+    const homeStatus = projectHomeStatus({ hasTriggeredUnresolvedAlert, connectorStatuses });
     return { project: p, connectorStatuses, keyMetrics, homeStatus };
   }
 }

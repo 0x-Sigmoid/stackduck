@@ -33,10 +33,13 @@ export class MetricPoint {
   @Column({ type: 'text' })
   key!: string;
 
+  @Column({ type: 'text', default: 'sum' })
+  aggregation!: 'sum' | 'last';
+
   @Column({ type: 'double precision' })
   value!: number;
 
-  @Column({ type: 'timestamptz' })
+  @Column({ type: 'timestamptz', primary: true })
   timestamp!: Date;
 
   @Column({ type: 'jsonb', nullable: true })

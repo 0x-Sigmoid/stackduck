@@ -47,12 +47,15 @@ export class IngestController {
     const { projectId } = req.webhook;
     const events: NormalizedEvent[] = [];
     for (let i = 0; i < items.length; i++) {
+      if (!items[i] || typeof items[i] !== 'object' || Array.isArray(items[i])) {
+        return err(400, 'invalid_event', 'Each event must be an object.');
+      }
       const it = items[i] as Record<string, unknown>;
       if (!METRIC_TYPES.includes(it.metricType as never)) {
         return err(400, 'invalid_event', `Event ${i}: metricType must be one of ${METRIC_TYPES.join(', ')} (unknown values are rejected, never coerced to "custom").`);
       }
       if (typeof it.key !== 'string' || !it.key) return err(400, 'invalid_event', `Event ${i}: "key" must be a non-empty string.`);
-      if (typeof it.value !== 'number' || Number.isNaN(it.value)) {
+      if (typeof it.value !== 'number' || !Number.isFinite(it.value)) {
         return err(400, 'invalid_event', `Event ${i}: "value" must be numeric.`);
       }
       let ts = now;
@@ -61,10 +64,14 @@ export class IngestController {
         if (Number.isNaN(parsed.getTime())) return err(400, 'invalid_event', `Event ${i}: bad timestamp.`);
         ts = parsed;
       }
+      if (it.aggregation !== undefined && !['sum', 'last'].includes(it.aggregation as string)) {
+        return err(400, 'invalid_event', 'Aggregation must be sum or last.');
+      }
       events.push({
         projectId, connectorId,
         metricType: it.metricType as NormalizedEvent['metricType'],
         key: it.key, value: it.value, timestamp: ts,
+        aggregation: it.aggregation as NormalizedEvent['aggregation'],
         metadata: it.metadata as NormalizedEvent['metadata'],
       });
     }

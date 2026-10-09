@@ -13,7 +13,7 @@ export class ExternalFetch {
     assertConfig(type, config);
     const now = new Date();
     const make = (metricType: NormalizedEvent['metricType'], key: string, value: number): NormalizedEvent =>
-      ({ projectId, connectorId, metricType, key, value, timestamp: now });
+      ({ projectId, connectorId, metricType, key, value, timestamp: now, aggregation: 'last' });
     if (type === 'sentry' && config.provider === 'sentry') {
       const since = Math.floor((now.getTime() - 24 * 3600000) / 1000);
       const until = Math.floor(now.getTime() / 1000);

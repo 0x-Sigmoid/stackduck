@@ -59,6 +59,10 @@ export class AlertRule {
   @Column({ name: 'cooldown_minutes', type: 'int', default: 60 })
   cooldownMinutes!: number;
 
+  /** Current breach state, independent of notification cooldown. */
+  @Column({ name: 'triggered_at', type: 'timestamptz', nullable: true })
+  triggeredAt?: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 }

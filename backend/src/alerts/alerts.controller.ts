@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } fro
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { validateWebhookTarget } from './webhook-target';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { err } from '../common/errors';
 import { METRIC_TYPES, MetricType } from '../common/types';
@@ -38,7 +40,19 @@ export class AlertsController {
   constructor(
     @InjectRepository(AlertRule) private readonly rules: Repository<AlertRule>,
     @InjectRepository(Project) private readonly projects: Repository<Project>,
+    private readonly config: ConfigService,
   ) {}
+
+  private async validateTarget(channel: string, target: string): Promise<void> {
+    if (channel === 'webhook') {
+      const allowLocal = this.config.get<string>('NODE_ENV') !== 'production' &&
+        this.config.get<string>('ALLOW_LOCAL_ALERT_WEBHOOKS') === 'true';
+      try { await validateWebhookTarget(target, allowLocal); }
+      catch (e) { err(400, 'invalid_argument', (e as Error).message); }
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target)) {
+      err(400, 'invalid_argument', 'Enter a valid email address.');
+    }
+  }
 
   private async own(userId: string, projectId: string) {
     const p = await this.projects.findOne({ where: { id: projectId } });
@@ -57,6 +71,7 @@ export class AlertsController {
     if (!dto.metricType || !dto.key || !dto.channelTarget) {
       return err(400, 'invalid_argument', '"metricType", "key" and "channelTarget" are required.');
     }
+    await this.validateTarget(dto.channel, dto.channelTarget);
     const rule = await this.rules.save(this.rules.create({
       projectId, metricType: dto.metricType as never, key: dto.key,
       condition: dto.condition, threshold: dto.threshold,
@@ -77,7 +92,14 @@ export class AlertsController {
     if (!(await this.own(req.user.userId, projectId))) return err(404, 'not_found', 'Project not found.');
     const rule = await this.rules.findOne({ where: { id: ruleId, projectId } });
     if (!rule) return err(404, 'not_found', 'Alert rule not found.');
-    await this.rules.update({ id: ruleId }, dto as Partial<AlertRule>);
+    await this.validateTarget(dto.channel ?? rule.channel, dto.channelTarget ?? rule.channelTarget);
+    const changedCondition = ['metricType', 'key', 'condition', 'threshold', 'windowMinutes']
+      .some((field) => field in dto && dto[field] !== rule[field]);
+    await this.rules.update({ id: ruleId }, {
+      ...dto,
+      ...(changedCondition || dto.status === 'muted' ? { triggeredAt: null } : {}),
+      ...(changedCondition ? { lastTriggeredAt: null } : {}),
+    });
     return { rule: await this.rules.findOneOrFail({ where: { id: ruleId } }) };
   }
 
