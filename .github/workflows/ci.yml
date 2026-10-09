@@ -9,7 +9,7 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -40,7 +40,7 @@ jobs:
       TEST_DATABASE_URL: postgres://stackduck:stackduck@127.0.0.1:5432/stackduck_test_ci
       TEST_REQUIRE_TIMESCALE: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
