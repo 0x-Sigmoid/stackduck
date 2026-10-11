@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useAccessibleMenu } from '../lib/useAccessibleMenu'
 import { ChevronDown } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signOut, type BackendUser } from '../lib/session'
 import UserAvatar from './UserAvatar'
 
 const ITEM_CLASS =
-  'block w-full rounded-lg px-3 py-2 text-left font-inter text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-inset hover:text-ink focus-visible:outline-2 focus-visible:outline-ring'
+  'block min-h-11 w-full rounded-lg px-3 py-2.5 text-left font-inter text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-inset hover:text-ink focus-visible:outline-2 focus-visible:outline-ring'
 
 /**
  * Signed-in account chip: avatar button + dropdown (Portfolio, Account
@@ -13,25 +13,10 @@ const ITEM_CLASS =
  * a logged-in user is recognized on every page, landing included.
  */
 export default function UserMenu({ user }: { user: BackendUser }) {
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
+  const { open, setOpen, rootRef, triggerRef, menuRef, onMenuKeyDown, onTriggerKeyDown, close } = useAccessibleMenu()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    if (!open) return
-    function onPointerDown(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onPointerDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+
 
   async function handleSignOut() {
     setOpen(false)
@@ -42,6 +27,8 @@ export default function UserMenu({ user }: { user: BackendUser }) {
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
+        onKeyDown={onTriggerKeyDown}
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
@@ -60,9 +47,11 @@ export default function UserMenu({ user }: { user: BackendUser }) {
             tabIndex={-1}
             aria-label="Close account menu"
             className="fixed inset-0 z-40 cursor-default bg-ink/30 sm:hidden"
-            onClick={() => setOpen(false)}
+            onClick={() => close()}
           />
           <div
+            ref={menuRef}
+            onKeyDown={onMenuKeyDown}
             role="menu"
             aria-label="Account"
             className="modal-pop fixed inset-x-4 bottom-4 z-50 mt-2 rounded-2xl border border-line bg-elevated p-2 shadow-sm sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:w-64"
@@ -77,16 +66,16 @@ export default function UserMenu({ user }: { user: BackendUser }) {
             </div>
           </div>
           <div className="pt-2">
-            <Link role="menuitem" to="/portfolio" className={ITEM_CLASS} onClick={() => setOpen(false)}>
+            <Link role="menuitem" tabIndex={-1} to="/portfolio" className={ITEM_CLASS} onClick={() => close()}>
               Portfolio
             </Link>
-            <Link role="menuitem" to="/docs" className={ITEM_CLASS} onClick={() => setOpen(false)}>
+            <Link role="menuitem" tabIndex={-1} to="/docs" className={ITEM_CLASS} onClick={() => close()}>
               Guides
             </Link>
-            <Link role="menuitem" to="/account" className={ITEM_CLASS} onClick={() => setOpen(false)}>
+            <Link role="menuitem" tabIndex={-1} to="/account" className={ITEM_CLASS} onClick={() => close()}>
               Account settings
             </Link>
-            <button role="menuitem" type="button" className={ITEM_CLASS} onClick={() => void handleSignOut()}>
+            <button role="menuitem" tabIndex={-1} type="button" className={ITEM_CLASS} onClick={() => void handleSignOut()}>
               Sign out
             </button>
           </div>

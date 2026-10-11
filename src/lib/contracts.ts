@@ -3,7 +3,7 @@ import type { ConnectorInstance, MetricType, Project } from '../types'
 export interface ProjectListEntry {
   project: Project
   connectorStatuses: Array<'connected' | 'error' | 'pending'>
-  keyMetrics: Array<{ metricType: MetricType; key: string; value: number; at: string }>
+  keyMetrics: Array<{ metricType: MetricType; key: string; value: number; at: string; currency?: string | null }>
   homeStatus: 'green' | 'gray' | 'amber' | 'red'
 }
 

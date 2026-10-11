@@ -1,3 +1,4 @@
+import { useDialog } from '../lib/useDialog'
 import { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import type { ImportItem, ImportSelection } from '../lib/oauth'
@@ -22,6 +23,7 @@ export default function ImportPicker(props: {
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  const dialogRef = useDialog(props.onClose, busy)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -61,10 +63,12 @@ export default function ImportPicker(props: {
   return (
     <div
       className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-backdrop p-4"
-      onClick={props.onClose}
+      onClick={() => { if (!busy) props.onClose() }}
       role="presentation"
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="import-heading"
@@ -72,10 +76,11 @@ export default function ImportPicker(props: {
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={props.onClose}
+          onClick={() => { if (!busy) props.onClose() }}
+          disabled={busy}
           aria-label="Close"
           title="Close"
-          className="float-right -mr-1 -mt-1 self-end rounded-lg px-2 py-1 font-inter text-xl leading-none text-ink-muted transition-colors duration-150 hover:bg-inset hover:text-ink"
+          className="icon-button self-end"
         >
           <X size={18} aria-hidden="true" />
         </button>
@@ -92,7 +97,7 @@ export default function ImportPicker(props: {
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Filter by name"
           />
-          <button className="btn-ghost whitespace-nowrap" onClick={props.onRefresh} disabled={props.loading}>
+          <button className="btn-ghost whitespace-nowrap" onClick={props.onRefresh} disabled={props.loading || busy}>
             {props.loading ? '…' : 'Refresh'}
           </button>
         </div>
@@ -111,13 +116,14 @@ export default function ImportPicker(props: {
             </p>
           )}
           {filtered.map((item) => (
-            <label
+            <div
               key={item.key}
               className="flex cursor-pointer items-start gap-3 border-b border-line p-3 transition-colors duration-150 last:border-0 hover:bg-inset"
             >
               <input
                 type="checkbox"
                 className="mt-1 h-[18px] w-[18px] shrink-0 accent-primary"
+                disabled={busy}
                 checked={checked.has(item.key)}
                 onChange={() => toggle(item.key)}
                 aria-label={`Import ${item.name}`}
@@ -125,6 +131,7 @@ export default function ImportPicker(props: {
               <span className="min-w-0 flex-1">
                 <input
                   className="input !border-0 !bg-transparent !p-0 font-inter text-sm font-semibold text-ink focus:!bg-elevated"
+                  disabled={busy}
                   value={names[item.key] ?? item.name}
                   onChange={(e) => setNames((n) => ({ ...n, [item.key]: e.target.value }))}
                   onClick={(e) => e.stopPropagation()}
@@ -133,7 +140,7 @@ export default function ImportPicker(props: {
                 />
                 <span className="block truncate font-inter text-xs text-ink-muted">{item.subtitle}</span>
               </span>
-            </label>
+            </div>
           ))}
         </div>
 
@@ -150,7 +157,7 @@ export default function ImportPicker(props: {
           <button className="btn-primary flex-1" disabled={busy || checked.size === 0} onClick={() => void onConfirm()}>
             {busy ? 'Importing…' : `Import selected${checked.size > 0 ? ` (${checked.size})` : ''}`}
           </button>
-          <button className="btn-ghost" onClick={props.onClose}>
+          <button disabled={busy} className="btn-ghost" onClick={() => { if (!busy) props.onClose() }}>
             Cancel
           </button>
         </div>

@@ -1,7 +1,8 @@
+import ConfirmDialog from '../components/ConfirmDialog'
 ﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import { signOut, type BackendUser } from '../lib/session'
+import { setSessionUser, signOut, type BackendUser } from '../lib/session'
 import { useAuthUser } from '../lib/useAuthUser'
 import { DEFAULT_PREFS, coercePrefs, saveUserPrefs, type UserPrefs } from '../lib/prefs'
 import UserAvatar from '../components/UserAvatar'
@@ -16,10 +17,10 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="card" aria-label={title}>
+    <section className="settings-section" aria-label={title}><div>
       <h2 className="font-inter text-lg font-semibold text-ink">{title}</h2>
       <p className="mt-1 font-inter text-sm font-normal text-ink-muted">{blurb}</p>
-      <div className="mt-5">{children}</div>
+      </div><div className="min-w-0">{children}</div>
     </section>
   )
 }
@@ -97,6 +98,9 @@ export default function Account() {
 
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [dangerError, setDangerError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [profileError, setProfileError] = useState(false)
+  const [prefsError, setPrefsError] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -113,16 +117,19 @@ export default function Account() {
     void u
     setSavingProfile(true)
     setProfileMsg(null)
+    setProfileError(false)
     try {
-      await api<{ user: BackendUser }>('/v1/auth/me', {
+      const result = await api<{ user: BackendUser }>('/v1/auth/me', {
         method: 'PATCH',
         body: JSON.stringify({
           displayName: name.trim() || null,
           photoUrl: photoUrl.trim() || null,
         }),
       })
+      setSessionUser(result.user)
       setProfileMsg('Profile updated.')
     } catch {
+      setProfileError(true)
       setProfileMsg('Couldn’t save your profile. Try again.')
     } finally {
       setSavingProfile(false)
@@ -132,10 +139,14 @@ export default function Account() {
   async function savePrefs() {
     setSavingPrefs(true)
     setPrefsMsg(null)
+    setPrefsError(false)
     try {
-      await saveUserPrefs(prefs)
+      const saved = await saveUserPrefs(prefs)
+      setPrefs(saved)
+      setSessionUser({ ...user!, prefs: saved })
       setPrefsMsg('Preferences saved.')
     } catch {
+      setPrefsError(true)
       setPrefsMsg('Couldn’t save preferences. Check your connection and try again.')
     } finally {
       setSavingPrefs(false)
@@ -144,19 +155,20 @@ export default function Account() {
 
   async function handleDelete() {
     setDangerError(null)
+    setDeleting(true)
     try {
       await api<{ ok: boolean }>(`/v1/auth/me`, { method: 'DELETE' })
       await signOut()
       navigate('/')
     } catch {
       setDangerError('Couldn’t delete your account. Try again, or contact support.')
-    }
+    } finally { setDeleting(false) }
   }
 
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 pb-20 pt-10">
-      <h1 className="font-inter text-2xl font-semibold text-ink">Account settings</h1>
+    <div className="workspace-page">
+      <h1 className="workspace-title">Account settings</h1>
       <p className="mt-2 font-inter text-sm font-normal text-ink-muted">
         Manage your profile, preferences, and sign-in security.
       </p>
@@ -208,7 +220,7 @@ export default function Account() {
                 {savingProfile ? 'Saving…' : 'Save profile'}
               </button>
               {profileMsg && (
-                <p className="font-inter text-sm font-normal text-ink-muted" role="status">
+                <p className={profileError ? 'text-sm text-coral-emphasis' : 'text-sm text-ink-muted'} role={profileError ? 'alert' : 'status'}>
                   {profileMsg}
                 </p>
               )}
@@ -283,7 +295,7 @@ export default function Account() {
                   {savingPrefs ? 'Saving…' : 'Save preferences'}
                 </button>
                 {prefsMsg && (
-                  <p className="font-inter text-sm font-normal text-ink-muted" role="status">
+                  <p className={prefsError ? 'text-sm text-coral-emphasis' : 'text-sm text-ink-muted'} role={prefsError ? 'alert' : 'status'}>
                     {prefsMsg}
                   </p>
                 )}
@@ -320,7 +332,7 @@ export default function Account() {
           </button>
         </Section>
 
-        <section className="card border-coral-emphasis" aria-label="Danger zone">
+        <section className="rounded-xl border border-line bg-surface p-5 sm:p-6" aria-label="Danger zone">
           <h2 className="font-inter text-lg font-semibold text-ink">Danger zone</h2>
           <p className="mt-1 font-inter text-sm font-normal text-ink-muted">
             Deleting your account removes your sign-in immediately, along with your
@@ -331,32 +343,12 @@ export default function Account() {
             .
           </p>
           <div className="mt-5">
-            {confirmingDelete ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => void handleDelete()}
-                  className="rounded-lg bg-coral-emphasis px-4 py-2.5 font-inter text-sm font-semibold text-paper-white transition-colors duration-150 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                  Yes, delete my account
-                </button>
-                <button type="button" className="btn-ghost" onClick={() => setConfirmingDelete(false)}>
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button type="button" className="btn-ghost" onClick={() => setConfirmingDelete(true)}>
-                Delete account…
-              </button>
-            )}
-            {dangerError && (
-              <p className="mt-3 font-inter text-sm font-normal text-coral-emphasis" role="alert">
-                {dangerError}
-              </p>
-            )}
+            <button type="button" className="btn-ghost text-coral-emphasis" onClick={() => { setDangerError(null); setConfirmingDelete(true) }}>Delete account…</button>
+
           </div>
         </section>
       </div>
-    </main>
+      {confirmingDelete && <ConfirmDialog title="Delete your account?" body="This permanently removes your account, projects, connectors, metrics, and alert rules." confirmWord="DELETE" confirmLabel="Delete account" busy={deleting} error={dangerError} onCancel={() => setConfirmingDelete(false)} onConfirm={() => void handleDelete()} />}
+    </div>
   )
 }

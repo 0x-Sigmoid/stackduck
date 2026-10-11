@@ -21,12 +21,12 @@ export default function Terms() {
   return (
     <div className="min-h-screen bg-canvas font-inter text-ink">
       <SiteNav />
-      <main className="mx-auto max-w-5xl px-6 pb-24 pt-12 sm:pb-28 sm:pt-16">
+      <main id="main-content" className="public-page">
       <article className="max-w-3xl">
         <LegalNav active="terms" />
         <header className="border-b border-line pb-6">
           <p className="font-inter text-xs font-semibold uppercase text-ink-muted">Using Stackduck</p>
-          <h1 className="mt-2 font-display text-heading-sm font-bold sm:text-heading">Terms of Service</h1>
+          <h1 className="page-title">Terms of Service</h1>
           <p className="mt-2 font-inter text-sm text-ink-muted">Last updated: September 2026</p>
         </header>
 

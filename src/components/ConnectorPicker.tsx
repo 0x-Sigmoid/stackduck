@@ -120,7 +120,7 @@ export default function ConnectorPicker(props: {
                   <span className="block truncate font-inter text-sm font-semibold text-ink">{item.name}</span>
                   <span className="mt-0.5 block font-inter text-xs text-ink-muted">{item.blurb}</span>
                 </span>
-                {connected && !retry ? <span className="badge badge-success shrink-0">Connected</span> : retry ? <span className="shrink-0 text-xs font-medium text-coral-emphasis">Reconnect</span> : <ArrowRight size={16} className="shrink-0 text-ink-muted" aria-hidden="true" />}
+                {connected && !retry ? <span className="badge badge-success shrink-0">Connected</span> : retry ? <span className="shrink-0 text-xs font-medium text-ink">Reconnect</span> : <ArrowRight size={16} className="shrink-0 text-ink-muted" aria-hidden="true" />}
               </button>
             </li>
           )

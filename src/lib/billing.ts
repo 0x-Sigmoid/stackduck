@@ -9,11 +9,7 @@ export interface PlanOffer {
 
 /** Display catalog (no identifiers ever reach the client). */
 export async function getPlans(): Promise<{ plans: PlanOffer[]; teamsNote: string }> {
-  try {
-    return await api<{ plans: PlanOffer[]; teamsNote: string }>('/v1/billing/plans')
-  } catch {
-    return { plans: [], teamsNote: '' }
-  }
+  return api<{ plans: PlanOffer[]; teamsNote: string }>('/v1/billing/plans')
 }
 
 /** Starts checkout and navigates to the Kelviq-hosted page. */

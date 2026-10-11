@@ -1,3 +1,4 @@
+import CopyButton from '../components/CopyButton'
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowRight, Check } from 'lucide-react'
@@ -21,7 +22,7 @@ function FlowSteps({ phase, done }: { phase: Phase; done: boolean }) {
           <span
             aria-current={i === active ? 'step' : undefined}
             className={`flex h-8 w-8 items-center justify-center rounded-full font-inter text-xs font-semibold transition-colors duration-150 ${
-              i < active ? 'bg-mint-pulse text-inkwell-navy' : i === active ? 'bg-inkwell-navy text-paper-white' : 'bg-inset text-ink-muted'
+              i < active ? 'bg-mint-pulse text-inkwell-navy' : i === active ? 'bg-primary text-on-primary' : 'bg-inset text-ink-muted'
             }`}
           >
             {i < active ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : i + 1}
@@ -67,7 +68,6 @@ export default function AddProject() {
   const [step2Busy, setStep2Busy] = useState(false)
   const [webhookResult, setWebhookResult] = useState<WebhookConnectResult | null>(null)
   const [stripeResult, setStripeResult] = useState<StripeConnectResult | null>(null)
-  const [secretCopied, setSecretCopied] = useState(false)
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -196,22 +196,16 @@ export default function AddProject() {
   if (phase === 'connect' && project) {
     const done = !!webhookResult || !!stripeResult
     return (
-      <div className="mx-auto mt-8 max-w-2xl">
+      <div className="mx-auto mt-8 max-w-2xl"><Link to="/portfolio" className="text-link mb-5 inline-flex min-h-11 items-center text-sm">Back to portfolio</Link>
         <FlowSteps phase={phase} done={done} />
         <div className="card mt-4">
           <p className="badge badge-success">Project created</p>
-          <h1 className="mt-3 font-inter text-2xl font-semibold">Want to connect live data?</h1>
+          <h1 className="workspace-title">Want to connect live data?</h1>
           <p className="mt-1 text-sm text-ink-muted">
-            {project.name} is registered. Attach a connector now, or do it later — name-only is a valid end state.{' '}
+            {project.name} is ready. Connect a source now, or open the project and add one later.{' '}
             <Link to="/docs/connect" className="text-link-emphasis text-link">Where do the credentials come from? <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" /></Link>
           </p>
-          <ul className="mt-4 flex flex-col gap-1.5 text-sm text-ink-muted">
-            <li><strong className="font-medium text-ink">Firebase</strong> — for apps built on Firebase. We read your user counts and error logs.</li>
-            <li><strong className="font-medium text-ink">Stripe</strong> — for products that take card payments. We read sales and payouts.</li>
-            <li><strong className="font-medium text-ink">Supabase</strong> — for apps backed by a Supabase database. We read your users.</li>
-            <li><strong className="font-medium text-ink">Sentry, GitHub Actions, PostHog, Better Stack, and Vercel</strong> — monitor errors, workflows, product usage, uptime, and deployments.</li>
-            <li><strong className="font-medium text-ink">Generic Webhook</strong> — for anything else. We give you a link your app can send updates to.</li>
-          </ul>
+
 
           {!connectorChoice && !webhookResult && !stripeResult && (
             <div className="mt-6">
@@ -239,9 +233,7 @@ export default function AddProject() {
               <details className="mt-3 rounded-lg bg-inset p-3 text-sm">
                 <summary className="cursor-pointer font-medium text-ink">What is this?</summary>
                 <p className="mt-2 text-ink-muted">
-                  A service account is like a read-only username your Firebase project issues
-                  for tools like Stackduck. It can only look — it can't change or delete
-                  anything. You create it in your Firebase settings in under a minute:{' '}
+                  A service account lets Stackduck access your project. Its permissions depend on the roles you grant. Use Authentication Viewer and Logs Viewer as described in the{' '}
                   <Link to="/docs/connect/firebase" className="text-link-emphasis text-link">
                     step-by-step guide <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" />
                   </Link>
@@ -260,7 +252,7 @@ export default function AddProject() {
                   onChange={(e) => setSaJson(e.target.value)}
                 />
               </label>
-              {step2Error && <p className="mt-2 text-sm text-coral-emphasis">{step2Error}</p>}
+              {step2Error && <p role="alert" className="mt-2 text-sm text-coral-emphasis">{step2Error}</p>}
               <div className="mt-4 flex gap-3">
                 <button className="btn-primary" disabled={step2Busy || !saJson.trim()} onClick={() => void connectFirebase()}>
                   {step2Busy ? 'Checking…' : 'Connect + run health check'}
@@ -301,7 +293,7 @@ export default function AddProject() {
                   onChange={(e) => setStripeWhSecret(e.target.value)}
                 />
               </label>
-              {step2Error && <p className="text-sm text-coral-emphasis">{step2Error}</p>}
+              {step2Error && <p role="alert" className="text-sm text-coral-emphasis">{step2Error}</p>}
               <div className="flex gap-3">
                 <button className="btn-primary" disabled={step2Busy || !stripeKey.trim()} onClick={() => void connectStripe()}>
                   {step2Busy ? 'Checking…' : 'Connect + run health check'}
@@ -316,22 +308,14 @@ export default function AddProject() {
               <div className="rounded-lg bg-inset p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Stripe webhook endpoint</p>
                 <code className="mt-1 block break-all text-sm">{stripeResult.stripeEndpoint}</code>
-                <button
-                  className="btn-ghost mt-2"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(stripeResult.stripeEndpoint)
-                    setSecretCopied(true)
-                  }}
-                >
-                  {secretCopied ? <>Copied <Check size={14} className="ml-1 inline" aria-hidden="true" /></> : 'Copy URL'}
-                </button>
+                <CopyButton value={stripeResult.stripeEndpoint} label="Copy endpoint" />
                 <p className="mt-3 text-sm text-ink-muted">
                   Register this URL under <strong>Stripe dashboard → Developers → Webhooks</strong> (listen
                   to charges + payouts) and paste that endpoint's signing secret when connecting — or leave
                   it out and Stackduck reconciles nightly totals instead.
                 </p>
               </div>
-              {step2Error && <p className="mt-2 text-sm text-coral-emphasis">{step2Error}</p>}
+              {step2Error && <p role="alert" className="mt-2 text-sm text-coral-emphasis">{step2Error}</p>}
             </div>
           )}
 
@@ -364,7 +348,7 @@ export default function AddProject() {
                   onChange={(e) => setSupabaseKey(e.target.value)}
                 />
               </label>
-              {step2Error && <p className="text-sm text-coral-emphasis">{step2Error}</p>}
+              {step2Error && <p role="alert" className="text-sm text-coral-emphasis">{step2Error}</p>}
               <div className="flex gap-3">
                 <button className="btn-primary" disabled={step2Busy || !supabaseUrl.trim() || !supabaseKey.trim()} onClick={() => void connectSupabase()}>
                   {step2Busy ? 'Checking…' : 'Connect + run health check'}
@@ -398,15 +382,7 @@ export default function AddProject() {
                     <code className="mt-1 block break-all text-sm">{webhookResult.ingestUrl}</code>
                     <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-ink-muted">Signing secret — shown once</p>
                     <code className="mt-1 block break-all text-sm">{webhookResult.signingSecret}</code>
-                    <button
-                      className="btn-ghost mt-2"
-                      onClick={() => {
-                        void navigator.clipboard.writeText(webhookResult.signingSecret)
-                        setSecretCopied(true)
-                      }}
-                    >
-                      {secretCopied ? <>Copied <Check size={14} className="ml-1 inline" aria-hidden="true" /></> : 'Copy secret'}
-                    </button>
+                    <CopyButton value={webhookResult.signingSecret} label="Copy secret" className="mt-2" />
                   </div>
                   <pre className="mt-3 overflow-x-auto rounded-lg bg-inkwell-navy p-4 text-xs text-paper-white">
                     {webhookResult.snippet.node}
@@ -419,13 +395,13 @@ export default function AddProject() {
                   </p>
                 </>
               )}
-              {step2Error && <p className="mt-2 text-sm text-coral-emphasis">{step2Error}</p>}
+              {step2Error && <p role="alert" className="mt-2 text-sm text-coral-emphasis">{step2Error}</p>}
             </div>
           )}
 
           <div className="mt-6 border-t border-line pt-4">
-            <Link to={project ? `/projects/${project.id}` : '/'} className="text-link">
-              {webhookResult ? 'Done — open project page' : 'Skip for now — open project page'} <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" />
+            <Link to={project ? `/projects/${project.id}` : '/'} className="btn-primary">
+              {done ? 'Open project' : 'Connect later — open project'} <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -434,11 +410,11 @@ export default function AddProject() {
   }
 
   return (
-    <div className="mx-auto mt-8 max-w-xl">
+    <div className="mx-auto mt-8 max-w-xl"><Link to="/portfolio" className="text-link mb-5 inline-flex min-h-11 items-center text-sm">Back to portfolio</Link>
       <FlowSteps phase={phase} done={false} />
       <div className="card mt-5">
         <p className="font-inter text-xs font-semibold uppercase text-ink-muted">Step 1 of 3 · Catalog</p>
-        <h1 className="mt-2 font-display text-2xl font-semibold">Add a project</h1>
+        <h1 className="workspace-title">Add a project</h1>
         <p className="mt-1 text-sm text-ink-muted">Only the name is required. Everything else can be filled in later.</p>
         <form onSubmit={(e) => void onCreate(e)} className="mt-6 flex flex-col gap-4">
           <label className="flex flex-col gap-1 text-sm font-medium">
@@ -483,7 +459,7 @@ export default function AddProject() {
               </label>
             </>
           )}
-          {error && <p className="text-sm text-coral-emphasis">{error}</p>}
+          {error && <p role="alert" className="text-sm text-coral-emphasis">{error}</p>}
           <button className="btn-primary" type="submit" disabled={busy || !name.trim()}>
             {busy ? 'Creating…' : 'Create project'}
           </button>

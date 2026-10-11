@@ -4,7 +4,7 @@ Thanks for helping improve Stackduck. Bug reports, thoughtful feature proposals,
 
 ## Before you start
 
-- Search existing [issues](https://github.com/nodedots/stackduck/issues) and pull requests so work is not duplicated.
+- Search existing [issues](https://github.com/0x-Sigmoid/stackduck/issues) and pull requests so work is not duplicated.
 - For substantial changes, open an issue first to discuss the problem and intended approach.
 - Keep pull requests focused. Include screenshots for user-facing changes and update documentation when behavior or setup changes.
 
@@ -45,6 +45,6 @@ The backend build is relevant when changing `backend/`. There is no unit-test fr
 
 ## Open an issue or pull request
 
-Use the repository's [bug report](https://github.com/nodedots/stackduck/issues/new?template=bug_report.yml) or [feature request](https://github.com/nodedots/stackduck/issues/new?template=feature_request.yml) form. Security-sensitive vulnerabilities should not be posted publicly; contact the maintainers privately through the repository's available security contact instead.
+Use the repository's [bug report](https://github.com/0x-Sigmoid/stackduck/issues/new?template=bug_report.yml) or [feature request](https://github.com/0x-Sigmoid/stackduck/issues/new?template=feature_request.yml) form. Security-sensitive vulnerabilities should not be posted publicly; contact the maintainers privately through the repository's available security contact instead.
 
 Pull requests should explain the user impact, summarize the implementation, list checks run (or why they could not be run), and include before/after screenshots for visual changes.

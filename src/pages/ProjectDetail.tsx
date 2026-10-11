@@ -1,7 +1,10 @@
+import CopyButton from '../components/CopyButton'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
+import ActionMenu from '../components/ActionMenu'
+import ConfirmDialog from '../components/ConfirmDialog'
+import ProjectOverview, { type MetricKey } from '../components/ProjectOverview'
 import DurationPicker from '../components/ui/duration-picker'
 import { api, ingestUrlFor, stripeUrlFor, ApiError, connectErrorMessage, loadErrorMessage } from '../lib/api'
 import SaJsonUpload from '../components/SaJsonUpload'
@@ -50,8 +53,6 @@ function titleCase(s: string): string {
   return s ? s[0].toUpperCase() + s.slice(1) : s
 }
 
-interface BucketPoint { time: string; value: number }
-interface BucketResp { date: string; points: BucketPoint[]; dailyAggregate?: { sum?: number; last?: number } }
 
 /** Click-to-edit field: text → input on click, Enter/blur saves, Esc cancels. */
 function Editable(props: {
@@ -89,7 +90,7 @@ function Editable(props: {
         <dt className="text-xs font-medium uppercase tracking-wide text-ink-muted">{props.label}</dt>
         <dd>
           <button
-            className="text-left text-sm hover:underline"
+            className="min-h-11 break-all text-left text-sm hover:underline"
             title="Click to edit"
             onClick={() => { setDraft(props.value); setEditing(true) }}
           >
@@ -128,13 +129,16 @@ export default function ProjectDetail() {
   const navigate = useNavigate()
   const [entry, setEntry] = useState<ProjectListEntry | null>(null)
   const [connectors, setConnectors] = useState<ConnectorInstance[] | null>(null)
-  const [keys, setKeys] = useState<Array<{ metricType: MetricType; key: string }>>([])
-  const [buckets, setBuckets] = useState<Record<string, BucketResp[]>>({})
-  const [rangeHours, setRangeHours] = useState<24 | 168 | 720>(168)
+  const [keys, setKeys] = useState<MetricKey[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
-  const [deleteDraft, setDeleteDraft] = useState('')
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedTab = searchParams.get('tab')
+  const activeTab = ['sources', 'alerts', 'details'].includes(requestedTab ?? '') ? requestedTab! : 'overview'
+  function selectTab(tab: string) { setSearchParams(tab === 'overview' ? {} : { tab }, { replace: true }) }
+  const loadVersion = useRef(0)
   const [nameEditing, setNameEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
   const [nameSaving, setNameSaving] = useState(false)
@@ -186,50 +190,39 @@ export default function ProjectDetail() {
 
   const load = useCallback(async () => {
     if (!projectId) return
+    const version = ++loadVersion.current
     setError(null)
     try {
       const [detail, conns, rulesRes, keysRes] = await Promise.all([
         api<ProjectListEntry>(`/v1/projects/${projectId}`),
         api<{ connectors: ConnectorInstance[] }>(`/v1/projects/${projectId}/connectors`),
         api<{ rules: AlertRule[] }>(`/v1/projects/${projectId}/alerts`),
-        api<{ keys: Array<{ metricType: MetricType; key: string }> }>(`/v1/projects/${projectId}/metrics/metric-keys`),
+        api<{ keys: MetricKey[] }>(`/v1/projects/${projectId}/metrics/metric-keys`),
       ])
+      if (version !== loadVersion.current) return
       setEntry(detail)
       setConnectors(conns.connectors)
       setRules(rulesRes.rules)
       setKeys(keysRes.keys)
     } catch (e) {
+      if (version !== loadVersion.current) return
       if (e instanceof ApiError && e.status === 404) setError('not-found')
       else setError(loadErrorMessage('this project', e))
     }
   }, [projectId])
 
   useEffect(() => {
+    setEntry(null)
+    setConnectors(null)
+    setRules(null)
+    setKeys([])
+    setAttach(null)
+    setShowRuleForm(false)
+    setNameEditing(false)
+    setDeleteArmed(false)
     void load()
+    return () => { loadVersion.current++ }
   }, [load])
-
-  // Fetch buckets for discovered keys whenever range/keys change.
-  useEffect(() => {
-    if (!projectId || keys.length === 0) return
-    const to = new Date().toISOString().slice(0, 10)
-    const from = new Date(Date.now() - rangeHours * 3600000).toISOString().slice(0, 10)
-    let cancelled = false
-    void (async () => {
-      const next: Record<string, BucketResp[]> = {}
-      for (const k of keys) {
-        try {
-          const r = await api<{ buckets: BucketResp[] }>(
-            `/v1/projects/${projectId}/metrics?metricType=${k.metricType}&key=${encodeURIComponent(k.key)}&from=${from}&to=${to}`,
-          )
-          next[`${k.metricType}/${k.key}`] = r.buckets
-        } catch {
-          next[`${k.metricType}/${k.key}`] = []
-        }
-      }
-      if (!cancelled) setBuckets(next)
-    })()
-    return () => { cancelled = true }
-  }, [projectId, keys, rangeHours])
 
   async function patchProject(body: Record<string, unknown>) {
     const res = await api<{ project: Project }>(`/v1/projects/${projectId}`, {
@@ -258,8 +251,14 @@ export default function ProjectDetail() {
   /** Hard delete: project + connectors + rules + metric points, server-side. */
   async function deleteProject() {
     if (!projectId) return
-    await api<{ ok: boolean }>(`/v1/projects/${projectId}?forever=true`, { method: 'DELETE' })
+    setDeleteBusy(true)
+    setDeleteError(null)
+    try {
+      await api<{ ok: boolean }>(`/v1/projects/${projectId}?forever=true`, { method: 'DELETE' })
     navigate('/portfolio')
+    } catch (cause) {
+      setDeleteError(loadErrorMessage('this project for removal', cause))
+    } finally { setDeleteBusy(false) }
   }
 
   async function attachFirebase() {
@@ -474,37 +473,26 @@ export default function ProjectDetail() {
 
   if (error === 'not-found') {
     return (
-      <div className="card mt-8 text-center">
-        <p className="text-lg font-medium">Project not found</p>
-        <Link to="/portfolio" className="text-link-emphasis text-link mt-2 inline-block"><ArrowLeft size={14} className="mr-1 inline" aria-hidden="true" />Back to portfolio</Link>
+      <div className="utility-panel">
+        <h1 className="workspace-title">Project not found</h1>
+        <Link to="/portfolio" className="btn-ghost mt-5"><ArrowLeft size={14} className="mr-1 inline" aria-hidden="true" />Back to portfolio</Link>
       </div>
     )
   }
   if (error) return (
     <div className="card mt-8 text-center">
-      <p className="font-inter text-base font-semibold">Something went wrong loading this project.</p>
-      <p className="mt-1 font-inter text-sm text-ink-muted">{error}</p>
+      <h1 className="workspace-title">Couldn’t load this project</h1>
+      <p role="alert" className="mt-3 text-sm text-coral-emphasis">{error}</p>
       <button className="btn-primary mt-4" onClick={() => void load()}>
         Try again
       </button>
     </div>
   )
   if (!entry) return (
-    <div className="mt-8 flex flex-col gap-4" aria-label="Loading project">
-      <div className="skeleton h-9 w-1/3" />
-      <div className="card flex flex-col gap-3">
-        <div className="skeleton h-6 w-1/4" />
-        <div className="skeleton h-16 w-full" />
-      </div>
-      <div className="card flex flex-col gap-3">
-        <div className="skeleton h-6 w-1/4" />
-        <div className="skeleton h-12 w-full" />
-        <div className="skeleton h-12 w-full" />
-      </div>
-      <div className="card flex flex-col gap-3">
-        <div className="skeleton h-6 w-1/4" />
-        <div className="skeleton h-44 w-full" />
-      </div>
+    <div className="mt-8 flex flex-col gap-6" aria-label="Loading project" aria-busy="true">
+      <div className="skeleton h-4 w-24" /><div className="skeleton h-10 w-1/2" /><div className="skeleton h-12 w-full max-w-md" />
+      <div className="card"><div className="skeleton h-4 w-24" /><div className="skeleton mt-3 h-8 w-32" /><div className="mt-6 grid grid-cols-3 gap-4 border-t border-line pt-5">{[0, 1, 2].map(index => <div key={index}><div className="skeleton h-3 w-20" /><div className="skeleton mt-2 h-5 w-full" /></div>)}</div></div>
+      <div className="grid gap-4 lg:grid-cols-2">{[0, 1].map(index => <div className="card" key={index}><div className="skeleton h-4 w-32" /><div className="skeleton mt-5 h-9 w-24" /><div className="skeleton mt-5 h-[200px] w-full" /></div>)}</div>
     </div>
   )
 
@@ -523,8 +511,8 @@ export default function ProjectDetail() {
       )}
 
       {/* 1. Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+        <div className="min-w-0 [overflow-wrap:anywhere]">
           <Link to="/portfolio" className="mb-3 inline-flex items-center gap-1.5 font-inter text-sm text-ink-muted hover:text-ink"><ArrowLeft size={15} aria-hidden="true" />Portfolio</Link>
           {nameEditing ? (
               <div className="flex flex-wrap items-center gap-2">
@@ -552,7 +540,7 @@ export default function ProjectDetail() {
             <div className="flex items-center gap-2">
               <h1 className="min-w-0 [overflow-wrap:anywhere] font-display text-3xl font-semibold text-ink sm:text-4xl">{p.name}</h1>
               <button
-                className="rounded-lg p-1.5 text-sm text-ink-muted transition-colors duration-150 hover:bg-inset hover:text-ink"
+                className="icon-button"
                 title="Rename project"
                 aria-label="Rename project"
                 onClick={() => { setNameDraft(p.name); setNameEditing(true) }}
@@ -563,93 +551,35 @@ export default function ProjectDetail() {
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {p.environment && <span className="badge">{titleCase(p.environment)}</span>}
-            <span className={p.status === 'active' ? 'badge badge-success' : p.status === 'paused' ? 'badge badge-highlight' : 'badge'}>
+            <span className={p.status === 'paused' ? 'badge badge-highlight' : 'badge'}>
               {titleCase(p.status)}
             </span>
           </div>
           {p.description && <p className="mt-3 max-w-2xl text-sm text-ink-secondary">{p.description}</p>}
           {p.repoUrl && <a href={p.repoUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex max-w-full items-center gap-1.5 truncate text-sm text-link-emphasis hover:underline">{p.repoUrl}<ArrowRight size={14} aria-hidden="true" /></a>}
         </div>
-        <div className="relative">
-          <button
-            className="btn-ghost px-3"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            aria-label="Project actions"
-            onClick={() => { setMenuOpen((m) => !m); setDeleteArmed(false); setDeleteDraft('') }}
-          >
-            ···
-          </button>
-          {menuOpen && !deleteArmed && (
-            <div role="menu" className="absolute right-0 z-30 mt-2 w-52 rounded-lg border border-line bg-elevated p-1 shadow-sm">
-              {p.status === 'paused' ? (
-                <button role="menuitem" className="w-full rounded-lg px-3 py-2 text-left font-inter text-sm font-medium text-ink transition-colors duration-150 hover:bg-inset" onClick={() => { setMenuOpen(false); void patchProject({ status: 'active' }).then(load) }}>
-                  Resume<span className="block text-xs font-normal text-ink-muted">Back to active</span>
-                </button>
-              ) : (
-                <button role="menuitem" className="w-full rounded-lg px-3 py-2 text-left font-inter text-sm font-medium text-ink transition-colors duration-150 hover:bg-inset" onClick={() => { setMenuOpen(false); void patchProject({ status: 'paused' }).then(load) }}>
-                  Pause<span className="block text-xs font-normal text-ink-muted">Keep everything, stop surfacing as live</span>
-                </button>
-              )}
-              {archived ? (
-                <button role="menuitem" className="w-full rounded-lg px-3 py-2 text-left font-inter text-sm font-medium text-ink transition-colors duration-150 hover:bg-inset" onClick={() => { setMenuOpen(false); void patchProject({ status: 'active' }).then(load) }}>
-                  Restore<span className="block text-xs font-normal text-ink-muted">Back to active</span>
-                </button>
-              ) : (
-                <button role="menuitem" className="w-full rounded-lg px-3 py-2 text-left font-inter text-sm font-medium text-ink transition-colors duration-150 hover:bg-inset" onClick={() => { setMenuOpen(false); void patchProject({ status: 'archived' }).then(load) }}>
-                  Archive<span className="block text-xs font-normal text-ink-muted">Kept, restorable, ingest paused</span>
-                </button>
-              )}
-              <button role="menuitem" className="w-full rounded-lg px-3 py-2 text-left font-inter text-sm font-medium text-coral-emphasis transition-colors duration-150 hover:bg-inset" onClick={() => setDeleteArmed(true)}>
-                Delete…<span className="block text-xs font-normal text-ink-muted">Permanent — needs your project name to confirm</span>
-              </button>
-            </div>
-          )}
-          {menuOpen && deleteArmed && (
-            <div className="absolute right-0 z-30 mt-2 w-72 rounded-lg border border-line bg-elevated p-4 shadow-sm">
-              <p className="font-inter text-sm font-semibold">Delete this project?</p>
-              <p className="mt-1 font-inter text-xs text-ink-muted">
-                Everything goes: catalog, connectors, metrics, alerts. This can’t be undone.
-                Type <strong>{p.name}</strong> to confirm.
-              </p>
-              <input
-                className="input mt-2"
-                autoFocus
-                aria-label="Type the project name to confirm deletion"
-                placeholder={p.name}
-                value={deleteDraft}
-                onChange={(e) => setDeleteDraft(e.target.value)}
-              />
-              <div className="mt-3 flex gap-2">
-                <button
-                  className="btn-primary bg-coral-emphasis"
-                  disabled={deleteDraft.trim() !== p.name}
-                  onClick={() => void deleteProject()}
-                >
-                  Delete forever
-                </button>
-                <button className="btn-ghost" onClick={() => { setDeleteArmed(false); setDeleteDraft('') }}>Cancel</button>
-              </div>
-            </div>
-          )}
-        </div>
+        <ActionMenu label="Project actions" actions={[
+          ...(archived ? [] : [{ label: p.status === 'paused' ? 'Resume project' : 'Pause project', onSelect: () => void patchProject({ status: p.status === 'paused' ? 'active' : 'paused' }).then(load).catch(() => showToast('Couldn’t update project status. Try again.')) }]),
+          { label: archived ? 'Restore project' : 'Archive project', onSelect: () => void patchProject({ status: archived ? 'active' : 'archived' }).then(load).catch(() => showToast('Couldn’t update project status. Try again.')) },
+          { label: 'Remove project…', destructive: true, onSelect: () => { setDeleteError(null); setDeleteArmed(true) } },
+        ]} />
+      </div>
+      <div role="tablist" aria-label="Project sections" className="workspace-tabs">
+        {[['overview', 'Overview'], ['sources', 'Data sources'], ['alerts', 'Alerts'], ['details', 'Details']].map(([id, label], index) => <button key={id} id={`tab-${id}`} role="tab" aria-selected={activeTab === id} aria-controls={`panel-${id}`} tabIndex={activeTab === id ? 0 : -1} onClick={() => selectTab(id)} onKeyDown={event => {
+          const tabs = ['overview', 'sources', 'alerts', 'details']
+          const next = event.key === 'ArrowRight' ? (index + 1) % 4 : event.key === 'ArrowLeft' ? (index + 3) % 4 : event.key === 'Home' ? 0 : event.key === 'End' ? 3 : undefined
+          if (next !== undefined) { event.preventDefault(); selectTab(tabs[next]); document.getElementById(`tab-${tabs[next]}`)?.focus() }
+        }}>{label}</button>)}
+      </div>
+      <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" hidden={activeTab !== 'overview'} tabIndex={0}>
+        {activeTab === 'overview' && <ProjectOverview entry={entry} connectors={connectors ?? []} keys={keys} rules={rules ?? []} onRefresh={load} onSources={() => selectTab('sources')} onAlerts={() => selectTab('alerts')} />}
       </div>
 
-      <nav aria-label="Project sections" className="order-1 -mx-1 flex gap-1 overflow-x-auto border-b border-line px-1 pb-2">
-        {[
-          ['about', 'Details'],
-          ['connectors', 'Data sources'],
-          ['metrics', 'Metrics'],
-          ['alerts', 'Alerts'],
-          ['activity', 'Activity'],
-        ].map(([id, label]) => <a key={id} href={`#${id}`} className="min-h-11 whitespace-nowrap rounded-lg px-3 py-2.5 font-inter text-sm font-medium text-ink-muted transition-colors hover:bg-inset hover:text-ink">{label}</a>)}
-      </nav>
-
       {/* 2. About */}
-      <details className="card order-6 scroll-mt-24" id="about">
-        <summary className="cursor-pointer list-none font-inter text-base font-semibold text-ink marker:hidden">
+      <section className="card" id="panel-details" role="tabpanel" aria-labelledby="tab-details" hidden={activeTab !== 'details'} tabIndex={0}>
+        <h2 className="font-inter text-lg font-semibold text-ink">
           <span className="flex items-center justify-between gap-3">Project details <span className="text-xs font-normal text-ink-muted">Edit catalog fields</span></span>
-        </summary>
+        </h2>
         <dl className="mt-3 grid gap-4 sm:grid-cols-2">
           <Editable label="Name" value={p.name} onSave={(v) => patchProject({ name: v })} />
           <Editable label="Description" value={p.description ?? ''} multiline onSave={(v) => patchProject({ description: v || null })} />
@@ -669,10 +599,10 @@ export default function ProjectDetail() {
             return t ? `Saved ${t}` : 'Not saved yet'
           })()}
         </p>
-      </details>
+      </section>
 
       {/* 3. Connectors */}
-      <section className="card order-2 scroll-mt-24" id="connectors">
+      <section className="card" id="panel-sources" role="tabpanel" aria-labelledby="tab-sources" hidden={activeTab !== 'sources'} tabIndex={0}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-inter text-lg font-semibold">Data sources</h2>
@@ -724,7 +654,7 @@ export default function ProjectDetail() {
             const activity = connectorActivity(c)
             const pushAddress = c.type === 'generic-webhook' ? ingestUrlFor(c.id) : c.type === 'stripe' ? stripeUrlFor(c.id) : null
             return (
-              <li key={c.id} className="rounded-2xl border border-line bg-surface p-4">
+              <li key={c.id} className="border-b border-line py-4 last:border-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className={`status-dot ${st.dot}`} aria-hidden="true" />
@@ -747,7 +677,7 @@ export default function ProjectDetail() {
                       setWebhookSecret(null)
                       setStripeEndpoint(null)
                       setShowConnectorPicker(false)
-                      document.getElementById('connectors')?.scrollIntoView({ behavior: 'smooth' })
+                      selectTab('sources')
                     }}
                   />
                 )}
@@ -778,9 +708,7 @@ export default function ProjectDetail() {
                 {pushAddress && (
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <code className="break-all text-xs">{pushAddress}</code>
-                    <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { void navigator.clipboard.writeText(pushAddress) }}>
-                      Copy address
-                    </button>
+                    <CopyButton value={pushAddress} label="Copy endpoint" />
                   </div>
                 )}
                 {c.type === 'stripe' && c.status === 'connected' && keys.length === 0 && (
@@ -815,7 +743,7 @@ export default function ProjectDetail() {
               />
             </div>
             <textarea className="input mt-2 font-mono text-xs" rows={6} value={saJson} onChange={(e) => setSaJson(e.target.value)} />
-            {attachError && <p className="mt-2 text-sm text-coral-emphasis">{attachError}</p>}
+            {attachError && <p role="alert" className="mt-2 text-sm text-coral-emphasis">{attachError}</p>}
             <div className="mt-2 flex gap-2">
               <button className="btn-primary" disabled={attachBusy || !saJson.trim()} onClick={() => void attachFirebase()}>
                 {attachBusy ? 'Checking…' : 'Connect + run health check'}
@@ -867,9 +795,7 @@ export default function ProjectDetail() {
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Stripe webhook endpoint</p>
             <code className="mt-1 block break-all text-sm">{stripeEndpoint}</code>
             <div className="mt-2 flex gap-2">
-              <button className="btn-ghost" onClick={() => { void navigator.clipboard.writeText(stripeEndpoint) }}>
-                Copy URL
-              </button>
+              <CopyButton value={stripeEndpoint} label="Copy endpoint" />
               <button className="btn-ghost" onClick={() => { setAttach(null); setStripeEndpoint(null); setStripeKey(''); setStripeWhSecret('') }}>Done</button>
             </div>
             <p className="mt-2 text-sm text-ink-muted">
@@ -944,7 +870,7 @@ export default function ProjectDetail() {
               <>
                 <p className="text-xs font-semibold uppercase text-ink-muted">Signing secret — shown once</p>
                 <code className="mt-1 block break-all text-sm">{webhookSecret}</code>
-                <button className="btn-ghost mt-2" onClick={() => { void navigator.clipboard.writeText(webhookSecret) }}>Copy secret</button>
+                <CopyButton value={webhookSecret} label="Copy secret" className="mt-2" />
                 <button className="btn-ghost ml-2" onClick={() => { setAttach(null); setWebhookSecret(null) }}>Done</button>
               </>
             )}
@@ -952,104 +878,8 @@ export default function ProjectDetail() {
         )}
       </section>
 
-      {/* 4. Metrics */}
-      <section className="card order-3 scroll-mt-24" id="metrics">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div><h2 className="font-inter text-lg font-semibold">Metrics</h2><p className="mt-1 text-sm text-ink-muted">Changes in your project over time.</p></div>
-          <div role="group" aria-label="Time range" className="flex gap-1 rounded-lg bg-inset p-1">
-            {([
-              [24, '24h'],
-              [168, '7d'],
-              [720, '30d'],
-            ] as Array<[24 | 168 | 720, string]>).map(([hours, label]) => (
-              <button
-                key={hours}
-                onClick={() => setRangeHours(hours)}
-                aria-pressed={rangeHours === hours}
-                className={`rounded-lg px-3 py-1 font-inter text-sm font-medium transition-colors duration-150 ${
-                  rangeHours === hours ? 'bg-surface text-ink' : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-        {(() => {
-          const seen = new Set<string>()
-          const hero: Array<{ family: string; label: string; value: number }> = []
-          for (const k of keys) {
-            const family = metricFamilyLabel(k.metricType)
-            if (seen.has(family)) continue
-            const data = buckets[`${k.metricType}/${k.key}`] ?? []
-            const last = data.length ? data[data.length - 1].dailyAggregate?.last : undefined
-            if (last === undefined) continue
-            seen.add(family)
-            hero.push({ family, label: humanKeyLabel(k.key), value: last })
-          }
-          if (hero.length === 0) return null
-          return (
-            <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
-              {hero.map((h) => (
-                <div key={h.family}>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-ink-muted">{h.family}</dt>
-                  <dd className="font-inter text-3xl font-semibold">{h.value.toLocaleString()}</dd>
-                  <dd className="text-xs text-ink-muted">{h.label}</dd>
-                </div>
-              ))}
-            </dl>
-          )
-        })()}
-        {keys.length === 0 && (
-          <p className="mt-3 text-sm text-ink-muted">
-            {(connectors?.length ?? 0) === 0 ? (
-              <>
-                Connect a data source above to see charts here.{' '}
-                <a href="#connectors" className="text-link-emphasis text-link" onClick={(e) => { e.preventDefault(); document.getElementById('connectors')?.scrollIntoView({ behavior: 'smooth' }) }}>Go to connectors <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" /></a>
-              </>
-            ) : (
-              'Charts appear here automatically once your first data arrives.'
-            )}
-          </p>
-        )}
-        <div className="mt-3 grid gap-4 lg:grid-cols-2">
-          {keys.map((k) => {
-            const id = `${k.metricType}/${k.key}`
-            const data = buckets[id] ?? []
-            const pts = data.flatMap((b) => b.points.map((pt) => ({ t: pt.time.slice(0, 10), v: pt.value })))
-            const last = data.length ? data[data.length - 1].dailyAggregate?.last : undefined
-            const rangeLabel = rangeHours === 24 ? 'last 24 hours' : rangeHours === 168 ? 'last 7 days' : 'last 30 days'
-            return (
-              <div key={id} className="rounded-lg border border-line p-3">
-                <div className="flex items-baseline justify-between">
-                  <p className="text-sm font-semibold">{humanKeyLabel(k.key)}</p>
-                  {last !== undefined && <p className="text-xl font-semibold">{last.toLocaleString()}</p>}
-                </div>
-                <p className="text-xs text-ink-muted">{metricFamilyLabel(k.metricType)}</p>
-                {pts.length === 0 ? (
-                  <p className="mt-2 text-sm text-ink-muted">No {humanKeyLabel(k.key).toLowerCase()} in the {rangeLabel}.</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={180}>
-                    <LineChart data={pts}>
-                      <XAxis dataKey="t" tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} stroke="var(--color-line)" minTickGap={40} />
-                      <YAxis tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} stroke="var(--color-line)" width={40} />
-                      <Tooltip
-                        contentStyle={{ background: 'var(--color-elevated)', border: '1px solid var(--color-line)', borderRadius: 8, color: 'var(--color-ink)' }}
-                        labelStyle={{ color: 'var(--color-ink)' }}
-                        itemStyle={{ color: 'var(--color-ink-muted)' }}
-                      />
-                      <Line type="monotone" dataKey="v" stroke="var(--color-ink)" strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
       {/* 5. Alerts */}
-      <section className="card order-4 scroll-mt-24" id="alerts">
+      <section className="card" id="panel-alerts" role="tabpanel" aria-labelledby="tab-alerts" hidden={activeTab !== 'alerts'} tabIndex={0}>
         <h2 className="font-inter text-lg font-semibold">Alerts</h2>
         <p className="mt-1 text-sm text-ink-muted">
           Save threshold rules for this project. Rules are evaluated every few minutes
@@ -1066,11 +896,11 @@ export default function ProjectDetail() {
         {rules !== null && rules.length > 0 && (
           <ul className="mt-3 flex flex-col gap-2">
             {rules.map((r) => (
-              <li key={r.id} className="flex flex-col gap-3 rounded-lg border border-line p-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
+              <li key={r.id} className="flex flex-col gap-3 border-b border-line py-4 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 [overflow-wrap:anywhere]">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={r.status === 'active' ? 'badge' : 'badge badge-success'}>
-                      {r.status === 'active' ? 'Configured' : 'Muted'}
+                    <span className={r.triggeredAt && r.status === 'active' ? 'badge badge-alert' : 'badge'}>
+                      {r.status === 'active' ? r.triggeredAt ? 'Firing' : 'Active' : 'Muted'}
                     </span>
                     <span className="text-sm font-medium">{describeRule(r)}</span>
                   </div>
@@ -1104,9 +934,9 @@ export default function ProjectDetail() {
           </ul>
         )}
 
-        <h3 className="mt-5 font-inter text-base font-semibold">Recent firings</h3>
+        <h3 className="mt-5 font-inter text-base font-semibold">Latest alert activity</h3>
         <p className="mt-1 rounded-md bg-inset px-3 py-3 text-sm text-ink-muted">
-          Firing history will appear here once automatic alert evaluation and notification delivery are available.
+          {rules?.some(rule => rule.lastTriggeredAt) ? rules.filter(rule => rule.lastTriggeredAt).map(rule => humanKeyLabel(rule.key) + ' · last triggered ' + timeAgo(rule.lastTriggeredAt ?? undefined)).join('; ') : 'No alert rules have fired yet.'}
         </p>
 
         {ruleError && <p role="alert" className="mt-3 text-sm text-coral-emphasis">{ruleError}</p>}
@@ -1114,7 +944,7 @@ export default function ProjectDetail() {
           <div className="mt-4 rounded-md border border-line p-3">
             <p className="text-sm font-medium">Connect a metric source first</p>
             <p className="mt-1 text-sm text-ink-muted">Once a source reports its first metric, you can save a threshold rule for it.</p>
-            <button className="btn-ghost mt-2 text-sm" onClick={() => document.getElementById('connectors')?.scrollIntoView({ behavior: 'smooth' })}>
+            <button className="btn-ghost mt-2 text-sm" onClick={() => selectTab('sources')}>
               Go to data sources <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" />
             </button>
           </div>
@@ -1200,7 +1030,7 @@ export default function ProjectDetail() {
       </section>
 
       {/* 6. Recent */}
-      <section className="card order-5 scroll-mt-24" id="activity">
+      <section className="card" id="activity" hidden={activeTab !== 'overview'}>
         <h2 className="font-inter text-lg font-semibold">Recent activity</h2>
         <ul className="mt-2 flex flex-col gap-1 text-sm">
           {(connectors ?? []).map((c) => {
@@ -1219,10 +1049,12 @@ export default function ProjectDetail() {
 
       <Link to="/portfolio" className="order-7 text-link text-sm"><ArrowLeft size={14} className="mr-1 inline" aria-hidden="true" />Back to portfolio</Link>
 
+      {deleteArmed && <ConfirmDialog title="Remove project?" body="This permanently removes the project, its data sources, metrics, and alert rules." confirmWord={p.name} confirmLabel="Remove forever" busy={deleteBusy} error={deleteError} onConfirm={() => void deleteProject()} onCancel={() => setDeleteArmed(false)} />}
+
       {toast && (
         <div
           role="status"
-          className="fade-swap fixed bottom-6 left-1/2 z-50 flex max-w-sm -translate-x-1/2 items-center gap-3 rounded-2xl border border-line bg-elevated p-4 shadow-sm"
+          className="fade-swap fixed bottom-6 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center gap-3 rounded-2xl border border-line bg-elevated p-4 shadow-sm"
         >
           <span className="status-dot status-green shrink-0" aria-hidden="true" />
           <p className="font-inter text-sm font-medium">{toast}</p>

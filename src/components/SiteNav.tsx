@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import Logo from './Logo'
@@ -20,6 +20,13 @@ const LINKS: Array<{ to: string; label: string; key: SiteSection }> = [
 export default function SiteNav({ active }: { active?: SiteSection }) {
   const user = useAuthUser()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!mobileOpen) return
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setMobileOpen(false); triggerRef.current?.focus() } }
+    document.addEventListener('keydown', escape)
+    return () => document.removeEventListener('keydown', escape)
+  }, [mobileOpen])
   return (
     <nav className="relative z-30 bg-transparent">
       <div className="mx-auto flex max-w-[var(--page-max-width)] items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
@@ -29,6 +36,7 @@ export default function SiteNav({ active }: { active?: SiteSection }) {
             {LINKS.map((l) => (
               <Link
                 key={l.key}
+                aria-current={active === l.key ? 'page' : undefined}
                 to={l.to}
                 className={`nav-link ${active === l.key ? 'nav-link-active' : ''}`}
               >
@@ -53,8 +61,9 @@ export default function SiteNav({ active }: { active?: SiteSection }) {
           <ThemeSwitcher />
           <span className="hidden sm:block"><GitHubStars /></span>
           <button
+            ref={triggerRef}
             type="button"
-            className="grid size-10 place-items-center rounded-lg border border-line text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-ring sm:hidden"
+            className="grid size-11 place-items-center rounded-lg border border-line text-ink transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-ring sm:hidden"
             aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={mobileOpen}
             aria-controls="site-mobile-navigation"

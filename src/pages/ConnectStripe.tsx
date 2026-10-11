@@ -7,7 +7,7 @@ export default function ConnectStripe() {
   return (
     <GuideShell
       badge="Connection guide · Stripe"
-      title={<>Stripe: the <span className="text-coral-emphasis">restricted key.</span></>}
+      title={<>Stripe: the <span>restricted key.</span></>}
       intro="For projects that take payments. You paste a restricted secret key — scoped to reading charges, balance, and payouts — and Stackduck verifies it on the spot. Instant events arrive through a webhook you register; nightly totals reconcile on their own even if you skip that step."
     >
       <div className="mt-8 flex flex-col gap-8">

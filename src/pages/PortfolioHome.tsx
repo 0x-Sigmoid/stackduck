@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Check, Plus, Search, Upload, X } from 'lucide-react'
-import { motion } from 'motion/react'
+import { Check, Plus, Search, Upload, X } from 'lucide-react'
 import { api, ApiError, loadErrorMessage } from '../lib/api'
 import { useAuthUser } from '../lib/useAuthUser'
-import { homeStatusLabel, humanKeyLabel } from '../lib/format'
-import Folder from '../components/ui/folder-component'
+import ActionMenu from '../components/ActionMenu'
+import ProjectCard from '../components/ProjectCard'
+import { monitoringHealth } from '../lib/metricPresentation'
 import {
   authForImport,
   consumeImportPrompt,
@@ -17,34 +17,6 @@ import {
 import ImportPicker from '../components/ImportPicker'
 import ConfirmDialog from '../components/ConfirmDialog'
 import type { ProjectListEntry } from '../lib/contracts'
-
-function timeAgo(iso: string | undefined): string | null {
-  if (!iso) return null
-  const ms = new Date(iso).getTime()
-  if (Number.isNaN(ms)) return null
-  const mins = Math.max(0, Math.round((Date.now() - ms) / 60000))
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.round(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.round(hours / 24)}d ago`
-}
-
-const STATUS_DOT: Record<string, string> = {
-  red: 'status-dot status-red',
-  amber: 'status-dot status-amber',
-  gray: 'status-dot status-gray',
-  green: 'status-dot status-green',
-}
-
-const STATUS_FILL: Record<string, string> = {
-  red: '#ff5858',
-  amber: '#fedf89',
-  gray: '#6b6d73',
-  green: '#86e0c1',
-}
-
-const MotionCard = motion.div
 
 /** One checklist row: done check or step number, title, blurb, optional action. */
 function OnboardingStep(props: {
@@ -89,7 +61,6 @@ export default function PortfolioHome() {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'archived'>('all')
   const [attempt, setAttempt] = useState(0)
-  const [importMenu, setImportMenu] = useState(false)
   const [onboardingGone, setOnboardingGone] = useState(false)
   // Removal is permanent (project + its connectors, metrics, alert rules), so
   // it goes through a typed confirmation prompt rather than a bare click.
@@ -133,7 +104,6 @@ export default function PortfolioHome() {
   } | null>(null)
 
   const openImporter = useCallback(async (kind: OAuthKind) => {
-    setImportMenu(false)
     setPicker({ kind, items: [], loading: true, error: null })
     try {
       // Stored provider token → list through the backend proxy. No token (or
@@ -187,9 +157,11 @@ export default function PortfolioHome() {
   useEffect(() => {
     setEntries(null)
     setError(null)
+    let cancelled = false
     api<{ projects: ProjectListEntry[] }>('/v1/projects')
-      .then((r) => setEntries(r.projects))
-      .catch((e) => setError(loadErrorMessage('your portfolio', e)))
+      .then((r) => { if (!cancelled) setEntries(r.projects) })
+      .catch((e) => { if (!cancelled) setError(loadErrorMessage('your portfolio', e)) })
+    return () => { cancelled = true }
   }, [attempt])
 
   const filtered = useMemo(() => {
@@ -203,7 +175,7 @@ export default function PortfolioHome() {
     })
   }, [entries, query, statusFilter])
 
-  const healthyCount = entries?.filter((e) => e.homeStatus === 'green').length ?? 0
+  const healthyCount = entries?.filter((e) => monitoringHealth(e) === 'green').length ?? 0
   const attentionCount = entries?.filter((e) => e.homeStatus === 'red' || e.homeStatus === 'amber').length ?? 0
 
   // Guided first run: shown until all three steps are done (or dismissed).
@@ -240,32 +212,7 @@ export default function PortfolioHome() {
           <p className="mt-1 font-inter text-sm text-ink-muted">A live view of every project you’re tracking — your ducklings, at a glance.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <button className="btn-ghost inline-flex items-center gap-2" onClick={() => setImportMenu((m) => !m)} aria-haspopup="menu" aria-expanded={importMenu}>
-              <Upload size={16} aria-hidden="true" />
-              Import ↓
-            </button>
-            {importMenu && (
-              <div role="menu" className="absolute right-0 z-30 mt-2 w-56 rounded-lg border border-line bg-elevated p-1 shadow-sm">
-                <button
-                  role="menuitem"
-                  className="w-full rounded-lg px-3 py-2 text-left font-inter text-sm font-medium text-ink transition-colors duration-150 hover:bg-inset"
-                  onClick={() => void openImporter('github')}
-                >
-                  Import from GitHub
-                  <span className="block text-xs font-normal text-ink-muted">Pick repos to add as projects</span>
-                </button>
-                <button
-                  role="menuitem"
-                  className="w-full rounded-lg px-3 py-2 text-left font-inter text-sm font-medium text-ink transition-colors duration-150 hover:bg-inset"
-                  onClick={() => void openImporter('google')}
-                >
-                  Import from Google Cloud
-                  <span className="block text-xs font-normal text-ink-muted">Pick GCP projects to add</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <ActionMenu label="Import projects" actions={[{ label: "Import from GitHub", onSelect: () => void openImporter("github") }, { label: "Import from Google Cloud", onSelect: () => void openImporter("google") }]}><Upload size={16} aria-hidden="true" />Import</ActionMenu>
           <Link to="/projects/new" className="btn-primary inline-flex items-center gap-2">
             <Plus size={17} aria-hidden="true" />
             Add project
@@ -311,7 +258,7 @@ export default function PortfolioHome() {
       {entries === null && !error && (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading projects">
           {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="card flex flex-col gap-3">
+            <div key={i} className="card project-card flex flex-col gap-3">
               <div className="skeleton h-6 w-2/3" />
               <div className="flex gap-2">
                 <div className="skeleton h-6 w-16" />
@@ -352,7 +299,7 @@ export default function PortfolioHome() {
               blurb="Link Firebase, Stripe, Supabase, or a webhook."
               action={
                 onboarding.hasProject && !onboarding.hasConnector && onboarding.firstOpen
-                  ? { to: `/projects/${onboarding.firstOpen.project.id}`, label: 'Connect now' }
+                  ? { to: `/projects/${onboarding.firstOpen.project.id}?tab=sources`, label: 'Connect now' }
                   : undefined
               }
             />
@@ -380,63 +327,7 @@ export default function PortfolioHome() {
       )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((e, i) => (
-          <MotionCard
-            key={e.project.id}
-            className="card card-hover relative"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.6, delay: Math.min(i * 0.05, 0.3), ease: [0, 0, 0.2, 1] }}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-[54px] w-16 shrink-0 items-center justify-center" aria-hidden="true"><Folder color="stackduck" size="xs" accent={STATUS_FILL[e.homeStatus]} /></span>
-                <div className="min-w-0"><h2 className="truncate font-inter text-base font-semibold"><Link to={`/projects/${e.project.id}`} className="after:absolute after:inset-0 after:content-['']">{e.project.name}</Link></h2><p className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-muted"><span className={STATUS_DOT[e.homeStatus]} title={homeStatusLabel(e.homeStatus)} />{homeStatusLabel(e.homeStatus)}</p></div>
-              </div>
-              <ArrowRight size={16} className="mt-1 shrink-0 text-ink-muted" aria-hidden="true" />
-            </div>
-            {(e.project.stackTags?.length ?? 0) > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {e.project.stackTags!.map((t) => (
-                <span key={t} className="badge">{t}</span>
-                ))}
-              </div>
-            )}
-            <div className="mt-4 min-h-14 border-t border-line pt-3">
-              {e.keyMetrics.length === 0 ? (
-                <p className="text-sm text-ink-muted">
-                  No data connected. <span className="text-link-emphasis text-link">Connect <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" /></span>
-                </p>
-              ) : (
-                <dl className="flex flex-wrap gap-x-4 gap-y-1">
-                  {e.keyMetrics.slice(0, 3).map((m) => (
-                    <div key={`${m.metricType}/${m.key}`}>
-                      <dt className="text-xs text-ink-muted">{humanKeyLabel(m.key)}</dt>
-                      <dd className="text-lg font-semibold">{m.value.toLocaleString()}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-            </div>
-            <p className="mt-3 text-xs text-ink-muted">
-              {(() => {
-                const t = timeAgo(e.project.updatedAt)
-                return t ? `Updated ${t}` : 'No updates yet'
-              })()}
-            </p>
-            <div className="mt-2 flex items-center justify-end">
-              <button
-                type="button"
-                className="relative z-10 rounded-lg px-2 py-1 font-inter text-xs font-medium text-ink-muted transition-colors duration-150 hover:bg-inset hover:text-coral-emphasis focus-visible:bg-inset focus-visible:text-coral-emphasis"
-                aria-label={`Remove ${e.project.name} from your portfolio`}
-                onClick={() => { setRemoveError(null); setRemoveTarget(e) }}
-              >
-                Remove
-              </button>
-            </div>
-          </MotionCard>
-        ))}
+        {filtered.map(entry => <ProjectCard key={entry.project.id} entry={entry} onRemove={() => { setRemoveError(null); setRemoveTarget(entry) }} />)}
       </div>
 
       {picker && (

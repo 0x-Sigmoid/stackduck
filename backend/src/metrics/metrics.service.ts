@@ -85,12 +85,12 @@ export class MetricsService {
   async latestPerKey(projectId: string, limit = 10) {
     const rows = await this.points.query(
       `SELECT DISTINCT ON ("metric_type", "key") "metric_type" AS "metricType", "key",
-              "value", "timestamp" AS "at"
+              "value", "timestamp" AS "at", metadata->>'currency' AS "currency"
          FROM "metric_points" WHERE "project_id" = $1
          ORDER BY "metric_type", "key", "timestamp" DESC LIMIT $2`,
       [projectId, limit],
     );
-    return rows as Array<{ metricType: string; key: string; value: number; at: Date }>;
+    return rows as Array<{ metricType: string; key: string; value: number; at: Date; currency: string | null }>;
   }
 
   /** Sum event increments plus the latest snapshot per connector in the window. */

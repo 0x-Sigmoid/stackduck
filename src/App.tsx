@@ -36,7 +36,7 @@ const MARKETING_PATHS = ['/', '/about', '/docs', '/pricing', '/support', '/feedb
 
 /** Marketing + docs pages own their chrome — match exact or nested paths. */
 function isMarketing(pathname: string): boolean {
-  return MARKETING_PATHS.includes(pathname) || pathname.startsWith('/docs/')
+  return MARKETING_PATHS.includes(pathname) || pathname.startsWith('/docs/') || !(['/portfolio', '/account', '/billing/success', '/signin', '/auth/callback'].includes(pathname) || /^\/projects\/[^/]+$/.test(pathname))
 }
 
 function Header({ user }: { user: BackendUser | null }) {
@@ -59,7 +59,7 @@ function Header({ user }: { user: BackendUser | null }) {
           {user ? (
             <>
               <a
-                href="https://github.com/nodedots/stackduck"
+                href="https://github.com/0x-Sigmoid/stackduck"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Stackduck on GitHub"
@@ -89,6 +89,23 @@ function Header({ user }: { user: BackendUser | null }) {
 
 import { PageFade } from './components/Reveal'
 
+function RouteFocus() {
+  const { pathname, hash } = useLocation()
+  useEffect(() => {
+    if (hash) {
+      let id = hash.slice(1)
+      try { id = decodeURIComponent(id) } catch { /* Keep an invalid fragment harmless. */ }
+      document.getElementById(id)?.scrollIntoView()
+      return
+    }
+    window.scrollTo(0, 0)
+    const main = document.querySelector<HTMLElement>('main')
+    main?.setAttribute('tabindex', '-1')
+    main?.focus({ preventScroll: true })
+  }, [pathname, hash])
+  return null
+}
+
 function Shell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   if (pathname === '/signin' || pathname === '/auth/callback') {
@@ -99,7 +116,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     return <PageFade routeKey={pathname}>{children}</PageFade>
   }
   return (
-    <main className="mx-auto max-w-[var(--page-max-width)] px-6 pb-20">
+    <main id="main-content" className="mx-auto max-w-[var(--page-max-width)] px-5 pb-20 sm:px-6">
       <PageFade routeKey={pathname}>{children}</PageFade>
     </main>
   )
@@ -110,7 +127,7 @@ function RequireAuth({ user, children }: { user: BackendUser | null | undefined;
   useEffect(() => {
     if (user === null) navigate('/signin')
   }, [user, navigate])
-  if (user === undefined) return <p className="p-8 text-ink-muted">Loading…</p>
+  if (user === undefined) return <div role="status" className="workspace-page"><span className="sr-only">Loading your workspace…</span><div className="skeleton h-9 w-48" aria-hidden="true" /><div className="skeleton mt-6 h-64 w-full" aria-hidden="true" /></div>
   if (user === null) return null
   return children
 }
@@ -120,6 +137,8 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <RouteFocus />
+      <a href="#main-content" className="skip-link" onClick={event => { event.preventDefault(); const main = document.querySelector<HTMLElement>('main'); main?.setAttribute('tabindex', '-1'); main?.focus(); main?.scrollIntoView() }}>Skip to content</a>
       <div className="min-h-screen bg-canvas font-inter text-ink">
         <Header user={user ?? null} />
         <Shell>

@@ -1,3 +1,4 @@
+import PortfolioCta from './PortfolioCta'
 import { Link } from 'react-router-dom'
 import SiteNav from './SiteNav'
 import SiteFooter from './SiteFooter'
@@ -31,7 +32,7 @@ export function Path({ children }: { children: React.ReactNode }) {
 
 export function Trouble({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="card">
+    <div className="border-b border-line py-5">
       <h3 className="font-inter text-body font-semibold">{title}</h3>
       <p className="mt-1 text-body-sm text-ink-muted">{children}</p>
     </div>
@@ -48,7 +49,7 @@ export function GuideShell(props: {
   return (
     <div className="min-h-screen bg-canvas font-inter text-ink">
       <SiteNav active="docs" />
-      <main className="mx-auto max-w-4xl px-6 pb-24 pt-12 sm:pb-28 sm:pt-16">
+      <main id="main-content" className="public-page">
         <div className="max-w-3xl border-b border-line pb-8 sm:pb-10">
           <nav aria-label="Breadcrumb" className="mb-5 flex items-center gap-2 text-sm">
             <Link to="/docs" className="nav-link">Documentation</Link>
@@ -56,7 +57,7 @@ export function GuideShell(props: {
             <span className="font-medium text-ink">Connection guides</span>
           </nav>
           <p className="badge bg-surface">{props.badge}</p>
-          <h1 className="mt-4 font-display font-bold text-4xl leading-[1.16] sm:text-heading-lg sm:leading-heading-lg">
+          <h1 className="page-title">
             {props.title}
           </h1>
           <p className="mt-4 text-body-lg leading-relaxed text-ink-secondary">{props.intro}</p>
@@ -64,9 +65,7 @@ export function GuideShell(props: {
         <div className="max-w-3xl">
           {props.children}
           <div className="mt-10 text-center">
-            <Link to="/signin" className="btn-primary inline-block">
-              Connect a project now
-            </Link>
+            <PortfolioCta />
           </div>
         </div>
       </main>

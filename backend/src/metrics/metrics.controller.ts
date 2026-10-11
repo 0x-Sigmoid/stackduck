@@ -26,7 +26,7 @@ export class MetricsController {
     const latest = await this.metrics.latestPerKey(projectId, 10);
     return {
       keys: latest.map((m) => ({
-        metricType: m.metricType, key: m.key, value: Number(m.value),
+        metricType: m.metricType, key: m.key, value: Number(m.value), currency: m.currency,
         at: m.at instanceof Date ? m.at.toISOString() : m.at,
       })),
     };
@@ -63,7 +63,7 @@ export class MetricsController {
         date: b.date,
         points: points
           .filter((pt) => pt.timestamp.toISOString().slice(0, 10) === b.date)
-          .map((pt) => ({ time: pt.timestamp.toISOString(), value: pt.value })),
+          .map((pt) => ({ time: pt.timestamp.toISOString(), value: pt.value, currency: typeof pt.metadata?.currency === 'string' ? pt.metadata.currency : null })),
         dailyAggregate: { sum: b.sum, avg: b.avg, max: b.max, min: b.min, last: b.last },
       })),
     };

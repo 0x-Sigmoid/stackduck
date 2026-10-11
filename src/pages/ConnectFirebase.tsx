@@ -7,7 +7,7 @@ export default function ConnectFirebase() {
   return (
     <GuideShell
       badge="Connection guide · Firebase"
-      title={<>Firebase: the <span className="text-coral-emphasis">service-account key.</span></>}
+      title={<>Firebase: the <span>service-account key.</span></>}
       intro="A service account is like a read-only username your Firebase project issues for tools like Stackduck. It arrives as a JSON file — you paste its contents into Stackduck once, and we use it to count users and read error logs. We never write or delete anything with it."
     >
       <div className="mt-8 flex flex-col gap-8">

@@ -196,6 +196,27 @@ integration('real monitoring API and migrations', () => {
     expect(result.count).toBe(4);
   });
 
+  it('keeps authentication limits off portfolio requests while protecting login', async () => {
+    for (let index = 0; index < 6; index++) {
+      expect((await request('/v1/projects', 'POST', { name: 'Portfolio project ' + index })).status).toBe(201);
+      expect((await request('/v1/projects/' + projectId + '/metrics/metric-keys')).status).toBe(200);
+    }
+    for (let index = 0; index < 11; index++) {
+      const login = await request('/v1/auth/login', 'POST', { email: 'missing@example.com', password: 'incorrect-password' });
+      expect(login.status).toBe(index < 10 ? 401 : 429);
+    }
+  }, 30_000);
+
+  it('preserves reported currencies for chart and portfolio values', async () => {
+    await ingest([{ metricType: 'revenue_metrics', key: 'mrr', value: 1200.5, metadata: { currency: 'ngn' } }]);
+    const keys = await request('/v1/projects/' + projectId + '/metrics/metric-keys');
+    expect(keys.body.keys.find((metric: any) => metric.key === 'mrr')).toMatchObject({ value: 1200.5, currency: 'ngn' });
+    const detail = await request('/v1/projects/' + projectId);
+    expect(detail.body.keyMetrics.find((metric: any) => metric.key === 'mrr').currency).toBe('ngn');
+    const series = await request('/v1/projects/' + projectId + '/metrics?metricType=revenue_metrics&key=mrr');
+    expect(series.body.buckets.flatMap((bucket: any) => bucket.points)[0]).toMatchObject({ value: 1200.5, currency: 'ngn' });
+  });
+
   it('upgrades an existing id-only table without losing metric history', async () => {
     const legacyName = 'stackduck_test_legacy_' + Date.now();
     await db.query('CREATE DATABASE "' + legacyName + '"');

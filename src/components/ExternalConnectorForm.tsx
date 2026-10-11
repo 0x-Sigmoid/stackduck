@@ -68,7 +68,7 @@ export default function ExternalConnectorForm(props: {
   }
 
   return (
-    <form onSubmit={submit} className="mt-3 flex flex-col gap-3 rounded-lg bg-inset p-4">
+    <form onSubmit={submit} className="mt-4 flex flex-col gap-4 border-t border-line pt-5">
       <div>
         <h3 className="text-sm font-semibold">Connect {details.title}</h3>
         <p className="mt-1 text-sm text-ink-muted">{details.description}</p>
@@ -124,7 +124,7 @@ export default function ExternalConnectorForm(props: {
       {props.error && <p role="alert" className="text-sm text-coral-emphasis">{props.error}</p>}
       <div className="flex gap-2">
         <button className="btn-primary" type="submit" disabled={props.busy || !token.trim()}>{props.busy ? 'Checking…' : 'Connect and check'}</button>
-        <button className="btn-ghost" type="button" onClick={props.onCancel}>Cancel</button>
+        <button className="btn-ghost" type="button" disabled={props.busy} onClick={props.onCancel}>Cancel</button>
       </div>
     </form>
   )

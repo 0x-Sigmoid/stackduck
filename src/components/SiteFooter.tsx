@@ -2,27 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Logo from './Logo'
 import DeveloperModal from './DeveloperModal'
+import XIcon from './XIcon'
 
 function GitHubIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
-    </svg>
-  )
-}
-
-function XIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.41l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.59l5.24 6.93 6.07-6.93zm-1.29 19.5h2.04L6.48 3.24H4.3l13.31 17.41z" />
-    </svg>
-  )
-}
-
-function LinkedInIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45z" />
     </svg>
   )
 }
@@ -35,16 +20,15 @@ function TelegramIcon() {
   )
 }
 
-/** Social links — placeholder URLs until the real handles exist. */
+/** Source and developer contact links. */
 const SOCIALS: Array<{
   href: string
   label: string
   Icon: (props: { size?: number }) => React.ReactElement
 }> = [
-  { href: 'https://github.com/nodedots/stackduck', label: 'GitHub', Icon: GitHubIcon },
-  { href: 'https://x.com/stackduck', label: 'X', Icon: XIcon },
-  { href: 'https://www.linkedin.com/company/stackduck', label: 'LinkedIn', Icon: LinkedInIcon },
-  { href: 'https://t.me/stackduck', label: 'Telegram', Icon: TelegramIcon },
+  { href: 'https://github.com/0x-Sigmoid/stackduck', label: 'GitHub', Icon: GitHubIcon },
+  { href: 'https://x.com/0x_Sigmoid', label: 'X', Icon: XIcon },
+  { href: 'https://t.me/xSigmoid', label: 'Telegram', Icon: TelegramIcon },
 ]
 
 const GROUPS: Array<{
@@ -65,7 +49,7 @@ const GROUPS: Array<{
       { to: '/support', label: 'Support' },
       { to: '/feedback', label: 'Feedback' },
       { to: '/changelog', label: 'Changelog' },
-      { to: 'https://github.com/nodedots/stackduck', label: 'GitHub', external: true },
+      { to: 'https://github.com/0x-Sigmoid/stackduck', label: 'GitHub', external: true },
     ],
   },
   {
@@ -95,7 +79,7 @@ export default function SiteFooter() {
                 Give every project a home and a heartbeat — health, users, and
                 revenue in one place.
               </p>
-              {/* Socials — icon row with placeholder destinations. */}
+              {/* Source and developer contacts. */}
               <div className="mt-6 flex items-center gap-1">
                 {SOCIALS.map(({ href, label, Icon }) => (
                   <a
@@ -103,8 +87,8 @@ export default function SiteFooter() {
                     href={href}
                     target="_blank"
                     rel="noreferrer"
-                    aria-label={`Stackduck on ${label}`}
-                    title={`Stackduck on ${label}`}
+                    aria-label={`${label === 'GitHub' ? 'Stackduck source' : '0xSigmoid on ' + label}`}
+                    title={`${label === 'GitHub' ? 'Stackduck source' : '0xSigmoid on ' + label}`}
                     className="rounded-lg p-2 text-ink-muted transition-colors duration-150 hover:bg-surface hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     <Icon size={16} />
@@ -148,7 +132,7 @@ export default function SiteFooter() {
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-inter text-xs text-ink-muted">
               <span>Open source under the MIT License</span>
               <Link to="/license" className="text-link">License</Link>
-              <a href="https://github.com/nodedots/stackduck" target="_blank" rel="noreferrer" className="text-link">
+              <a href="https://github.com/0x-Sigmoid/stackduck" target="_blank" rel="noreferrer" className="text-link">
                 Source on GitHub
               </a>
             </div>
@@ -157,7 +141,7 @@ export default function SiteFooter() {
               className="text-link shrink-0 text-left font-inter text-xs font-medium text-ink-muted hover:text-ink sm:text-right"
               title="About the developer"
             >
-              Developed by NodeDots
+              Developed by 0xSigmoid
             </button>
           </div>
         </div>

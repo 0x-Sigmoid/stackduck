@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AuthController } from './auth/auth.controller';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AlertsModule } from './alerts/alerts.module';
@@ -28,8 +29,17 @@ import { ProjectsModule } from './projects/projects.module';
     // per-route on login/refresh/register; everything else uses `default`.
     ThrottlerModule.forRoot([
       { name: 'default', ttl: 60000, limit: 300 },
-      { name: 'auth', ttl: 60000, limit: 10 },
-      { name: 'signup', ttl: 60000, limit: 5 },
+      {
+        name: 'auth', ttl: 60000, limit: 10,
+        skipIf: (context) => context.getClass() !== AuthController || ![
+          AuthController.prototype.login, AuthController.prototype.refresh,
+          AuthController.prototype.requestReset, AuthController.prototype.confirmReset,
+        ].some(handler => handler === context.getHandler()),
+      },
+      {
+        name: 'signup', ttl: 60000, limit: 5,
+        skipIf: (context) => context.getClass() !== AuthController || context.getHandler() !== AuthController.prototype.register,
+      },
     ]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

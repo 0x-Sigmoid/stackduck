@@ -1,27 +1,23 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { openPortal } from '../lib/billing'
+import { useAuthUser } from '../lib/useAuthUser'
+import PortfolioCta from '../components/PortfolioCta'
 
-/** Post-checkout landing. Kelviq redirects here via successUrl. */
 export default function BillingSuccess() {
-  return (
-    <div className="mx-auto mt-16 max-w-md pb-16">
-      <div className="card text-center">
-        <p className="badge badge-success">Payment successful</p>
-        <h1 className="mt-3 font-inter text-2xl font-semibold text-ink">
-          You’re on Pro.
-        </h1>
-        <p className="mt-2 font-inter text-sm text-ink-muted">
-          Your subscription is active. It can take a minute for everything to
-          sync — then manage it anytime from the billing portal.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Link to="/portfolio" className="btn-primary">
-            Open portfolio
-          </Link>
-          <Link to="/pricing" className="btn-ghost">
-            Back to pricing
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
+  const user = useAuthUser()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  async function manage() {
+    setBusy(true); setError(null)
+    try { await openPortal() } catch (err) { setError(err instanceof Error ? err.message : 'Couldn’t open billing. Try again.') } finally { setBusy(false) }
+  }
+  return <div className="utility-panel">
+    <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Billing</p>
+    <h1 className="workspace-title">Check your subscription</h1>
+    <p className="mt-3 text-sm leading-relaxed text-ink-muted">If you completed checkout, your payment and subscription details are available in the billing portal. Updates may take a moment to arrive.</p>
+    <div className="mt-6 flex flex-wrap justify-center gap-3"><PortfolioCta />{user && <button className="btn-ghost" disabled={busy} onClick={() => void manage()}>{busy ? 'Opening…' : 'Manage billing'}</button>}</div>
+    {error && <p role="alert" className="mt-4 text-sm text-coral-emphasis">{error}</p>}
+    <Link to="/pricing" className="text-link mt-5 inline-flex min-h-11 items-center text-sm">Back to pricing</Link>
+  </div>
 }

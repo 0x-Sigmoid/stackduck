@@ -6,7 +6,7 @@
 Use GitHub's **private vulnerability reporting** instead:
 
 1. Go to the repository's **Security** tab → **Report a vulnerability**
-   (equivalently: `https://github.com/nodedots/stackduck/security/advisories/new`).
+   (equivalently: `https://github.com/0x-Sigmoid/stackduck/security/advisories/new`).
 2. Describe what you found, the steps to reproduce it, and what you think the
    impact is. Proof-of-concept code is welcome; please avoid accessing other
    users' data or disrupting the service while investigating.

@@ -111,4 +111,20 @@ The steps for standing up the NestJS API are in [backend/RAILWAY.md](backend/RAI
 
 ## Contributing
 
-Stackduck is open source, and contributions are welcome. Read the [contribution guide](CONTRIBUTING.md), [report a bug](https://github.com/nodedots/stackduck/issues/new?template=bug_report.yml), or [request a feature](https://github.com/nodedots/stackduck/issues/new?template=feature_request.yml). Pull requests use the repository checklist. Please do not post credentials or security-sensitive vulnerability details in public issues.
+Stackduck is open source, and contributions are welcome. Read the [contribution guide](CONTRIBUTING.md), [report a bug](https://github.com/0x-Sigmoid/stackduck/issues/new?template=bug_report.yml), or [request a feature](https://github.com/0x-Sigmoid/stackduck/issues/new?template=feature_request.yml). Pull requests use the repository checklist. Please do not post credentials or security-sensitive vulnerability details in public issues.
+
+## UI verification
+
+Project details open on Overview, with connector setup, alert rules, and project metadata in separate tabs. Portfolio freshness uses metric sample timestamps. Revenue values use the currency reported by the source; missing currency is identified rather than assumed, and charts do not combine different currencies.
+
+For the browser regression, run the frontend and API against a **disposable test database** first. The script creates a temporary account and projects, ingests signed metrics, and checks desktop/mobile layouts, light/dark themes, keyboard controls, source setup, saved edits, and chart recovery.
+
+```powershell
+$env:UI_DISPOSABLE_API = 'true'
+$env:UI_BASE = 'http://127.0.0.1:5173'
+$env:UI_API_BASE = 'http://127.0.0.1:3001'
+$env:UI_SHOTS = 'shots/product-ui'
+node scripts/verify-product-ui.mjs
+```
+
+The frontend API base must point to that same API. Chrome defaults to its Windows installation path; set `CHROME_PATH` for another installation. Screenshots contain test fixtures, not production data.

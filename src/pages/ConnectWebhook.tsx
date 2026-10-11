@@ -7,7 +7,7 @@ export default function ConnectWebhook() {
   return (
     <GuideShell
       badge="Connection guide · Webhook"
-      title={<>Any backend: the <span className="text-coral-emphasis">signed webhook.</span></>}
+      title={<>Any backend: the <span>signed webhook.</span></>}
       intro="If your project isn't on Firebase, it can still report in: Stackduck gives that project a private ingest URL plus a signing secret. Your backend signs each event with the secret and posts it. The signature proves the event came from you — no login, no API keys in your code."
     >
       <div className="mt-8 flex flex-col gap-8">

@@ -22,14 +22,26 @@ export default function ConfirmDialog(props: {
 }) {
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     inputRef.current?.focus()
+    return () => { document.body.style.overflow = overflow; previous?.focus() }
   }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !props.busy) props.onCancel()
+      if (e.key === 'Tab') {
+        const items = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [tabindex="0"]') ?? [])
+        const first = items[0], last = items[items.length - 1]
+        if (!items.length) { e.preventDefault(); dialogRef.current?.focus() }
+        else if (e.shiftKey && (document.activeElement === first || !dialogRef.current?.contains(document.activeElement))) { e.preventDefault(); last?.focus() }
+        else if (!e.shiftKey && (document.activeElement === last || !dialogRef.current?.contains(document.activeElement))) { e.preventDefault(); first?.focus() }
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -44,6 +56,8 @@ export default function ConfirmDialog(props: {
       onClick={() => { if (!props.busy) props.onCancel() }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-heading"

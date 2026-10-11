@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Star } from 'lucide-react'
 
-const REPO = 'nodedots/stackduck'
-const CACHE_KEY = 'stackduck:gh-stars'
+const REPO = '0x-Sigmoid/stackduck'
+const CACHE_KEY = 'stackduck:gh-stars:' + REPO
 const CACHE_TTL_MS = 60 * 60 * 1000
 
 function formatCount(n: number): string {
@@ -39,7 +39,9 @@ export default function GitHubStars() {
     } catch {
       // Corrupt cache — fall through to a fresh fetch.
     }
-    void fetch(`https://api.github.com/repos/${REPO}`)
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), 5000)
+    void fetch(`https://api.github.com/repos/${REPO}`, { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { stargazers_count?: number } | null) => {
         if (cancelled || typeof data?.stargazers_count !== 'number') return
@@ -51,8 +53,11 @@ export default function GitHubStars() {
         }
       })
       .catch(() => undefined)
+      .finally(() => window.clearTimeout(timer))
     return () => {
       cancelled = true
+      window.clearTimeout(timer)
+      controller.abort()
     }
   }, [])
 

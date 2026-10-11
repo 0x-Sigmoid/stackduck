@@ -7,7 +7,7 @@ export default function ConnectSupabase() {
   return (
     <GuideShell
       badge="Connection guide · Supabase"
-      title={<>Supabase: <span className="text-coral-emphasis">URL + service key.</span></>}
+      title={<>Supabase: <span>URL + service key.</span></>}
       intro="For database-backed projects. Stackduck polls your auth users for totals, signups, and 30-day active users — which only works with the service_role key, because it bypasses row-level security. The anon key can't list users at all."
     >
       <div className="mt-8 flex flex-col gap-8">

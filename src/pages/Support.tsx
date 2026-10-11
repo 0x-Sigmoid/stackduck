@@ -7,11 +7,11 @@ export default function Support() {
   return (
     <div className="min-h-screen bg-canvas font-inter text-ink">
       <SiteNav />
-      <main className="mx-auto max-w-5xl px-6 pb-24 pt-12 sm:pb-28 sm:pt-16">
+      <main id="main-content" className="public-page">
         <header className="max-w-3xl border-b border-line pb-8 sm:pb-10">
           <p className="font-inter text-xs font-semibold uppercase text-ink-muted">Support</p>
-          <h1 className="mt-3 font-display font-bold text-4xl leading-[1.16] sm:text-heading-lg sm:leading-heading-lg">
-            Help, <span className="text-coral-emphasis">human included.</span>
+          <h1 className="page-title">
+            Help, <span>human included.</span>
           </h1>
           <p className="mt-4 text-body-lg leading-relaxed text-ink-secondary">
             Stackduck is built and maintained by one person. No support tiers, no bots -
@@ -29,7 +29,7 @@ export default function Support() {
                 GitHub Issues is the bug tracker. Include what you clicked, what you expected, and your
                 browser; screenshots help more than paragraphs.
               </p>
-              <a href="https://github.com/nodedots/stackduck/issues" target="_blank" rel="noreferrer" className="text-link-emphasis text-link mt-4 inline-flex items-center gap-1 text-sm">
+              <a href="https://github.com/0x-Sigmoid/stackduck/issues" target="_blank" rel="noreferrer" className="text-link-emphasis text-link mt-4 inline-flex items-center gap-1 text-sm">
                 Open GitHub Issues <ArrowRight size={14} aria-hidden="true" />
               </a>
             </div>

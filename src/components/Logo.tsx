@@ -1,24 +1,8 @@
 import { Link } from 'react-router-dom'
 
-/**
- * Stackduck mark — Duck Mascot:
- * Minimalist geometric duck mascot resting calmly on a horizontal stack base,
- * with a coral telemetry eye watching over the stack.
- * Theme-independent tile: Inkwell Navy #151b31 background, Paper #f2f2f2 duck,
- * and Coral Emphasis #ff5858 eye.
- */
+/** Duck mascot on two stack layers, shared with the favicon and exported brand assets. */
 export function StackduckMark({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Stackduck mark">
-      <rect width="64" height="64" rx="14" fill="#151b31" />
-      <path
-        d="M15 44C15 44 14 36 21 34C24 33 25 30 25 25C25 18 29 14 35 14C41 14 43 18 43 21C47 21 52 22 53 24C52 27 47 27 43 27C43 32 46 36 50 37C46 41 40 44 32 44Z"
-        fill="#f2f2f2"
-      />
-      <line x1="14" y1="50" x2="50" y2="50" stroke="#f2f2f2" strokeWidth="5" strokeLinecap="round" />
-      <circle cx="34" cy="20" r="3.5" fill="#ff5858" />
-    </svg>
-  )
+  return <img src="/logo.svg" width={size} height={size} alt="Stackduck mark" className="shrink-0" />
 }
 
 /** Full lockup: mark + Inter 600 wordmark. Theme-aware via `text-ink`

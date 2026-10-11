@@ -1,3 +1,4 @@
+import PortfolioCta from '../components/PortfolioCta'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Activity, ArrowRight, Check as CheckIcon, CircleCheck, UsersRound } from 'lucide-react'
@@ -37,7 +38,7 @@ function PricingPreview() {
             <p className="mt-0.5 text-[11px] text-ink-muted">All projects in one view</p>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-secondary"><span className="status-dot status-green size-2" />Live</span>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-secondary"><span className="status-dot status-green size-2" />Example</span>
       </div>
       <div className="grid grid-cols-3 divide-x divide-line py-4 text-center">
         <div><p className="text-[10px] text-ink-muted">Projects</p><p className="mt-1 text-lg font-semibold tabular-nums">08</p></div>
@@ -51,7 +52,7 @@ function PricingPreview() {
           </div>
           <div aria-hidden="true" className="mt-3 flex h-12 items-end gap-1.5">
             {[35, 48, 39, 65, 54, 82, 60, 74, 52, 92, 68, 80, 59, 100, 76, 88, 66, 95, 72, 84].map((height, i) => (
-              <span key={i} className={`min-w-0 flex-1 rounded-t-[2px] ${i === 13 ? 'bg-coral-emphasis' : 'bg-ink/15'}`} style={{ height: `${height}%` }} />
+              <span key={i} className={`min-w-0 flex-1 rounded-t-[2px] ${i === 13 ? 'bg-ink' : 'bg-ink/15'}`} style={{ height: `${height}%` }} />
             ))}
           </div>
         </div>
@@ -71,15 +72,22 @@ export default function Pricing() {
   const sessionUser = useAuthUser()
   const [offers, setOffers] = useState<PlanOffer[] | null>(null)
   const [teamsNote, setTeamsNote] = useState('')
+  const [catalogueError, setCatalogueError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'monthly' | 'yearly' | null>(null)
 
   useEffect(() => {
+    setCatalogueError(false)
+    setOffers(null)
+    let active = true
     void getPlans().then((r) => {
+      if (!active) return
       setOffers(r.plans)
       setTeamsNote(r.teamsNote)
-    })
-  }, [])
+    }).catch(() => { if (active) { setCatalogueError(true); setOffers([]) } })
+    return () => { active = false }
+  }, [attempt])
 
   const offered = (period: 'monthly' | 'yearly') =>
     offers?.find((o) => o.period === period)?.offered ?? false
@@ -88,7 +96,7 @@ export default function Pricing() {
 
   async function upgrade(period: 'monthly' | 'yearly') {
     if (!sessionUser) {
-      navigate('/signin')
+      navigate('/signin?mode=signup')
       return
     }
     setError(null)
@@ -122,21 +130,21 @@ export default function Pricing() {
     <div className="min-h-screen bg-canvas font-inter text-ink">
       <SiteNav active="pricing" />
 
-      <main className="mx-auto max-w-[var(--page-max-width)] px-6 pb-24 pt-12 sm:pb-28 sm:pt-16">
+      <main id="main-content" className="public-page">
         <section className="grid items-center gap-8 border-b border-line pb-10 md:grid-cols-[minmax(0,1fr)_minmax(300px,440px)] md:gap-12 md:pb-12">
           <div className="max-w-2xl">
             <p className="badge badge-success">Early access</p>
-            <h1 className="mt-5 font-display text-4xl font-bold leading-[1.12] sm:text-heading-lg sm:leading-heading-lg">
-              Free <span className="text-coral-emphasis">for now.</span>
+            <h1 className="page-title">
+              Plans for your portfolio.
             </h1>
             <p className="mt-4 max-w-xl text-body-lg leading-relaxed text-ink-secondary">
-              Everything Stackduck does is free during early access: every project,
-              every connector, every alert. Pro switches on when paid plans publish.
+              {offers === null ? 'Checking current plan availability…' : catalogueError ? 'Plan availability is temporarily unavailable. Try again before choosing a plan.' : offers.some(plan => plan.offered) ? 'Start with a portfolio. Review the available plans below before upgrading.' : 'Monitoring is free during early access. Paid plans are not published yet.'}
             </p>
           </div>
           <PricingPreview />
         </section>
 
+        {catalogueError && <div role="alert" className="mt-6 flex flex-wrap items-center gap-3 text-sm"><p className="text-coral-emphasis">Couldn’t load plans.</p><button className="btn-ghost" onClick={() => setAttempt(value => value + 1)}>Retry plans</button></div>}
         <Reveal>
           <section className="grid gap-6 border-b border-line py-10 md:grid-cols-[minmax(220px,0.7fr)_1.3fr] md:gap-12 md:py-12">
             <div>
@@ -182,7 +190,7 @@ export default function Pricing() {
                         title={isOffered ? `Upgrade to Pro ${period}` : 'Coming soon - plans are not published yet'}
                         onClick={() => void upgrade(period)}
                       >
-                        {busy === period ? 'Starting...' : isOffered ? `Upgrade ${period}` : 'Coming soon'}
+                        {busy === period ? 'Starting…' : offers === null ? 'Checking…' : catalogueError ? 'Unavailable' : isOffered ? `Upgrade ${period}` : 'Coming soon'}
                       </button>
                     </div>
                   )
@@ -249,7 +257,7 @@ export default function Pricing() {
               <h2 className="mt-2 font-inter text-heading-sm font-semibold">Questions</h2>
             </div>
             <div>
-              <Faq q="When will I actually be charged?"><p>Not yet. Checkout opens the moment plans publish; until then the buttons above stay on Coming soon and everything is free.</p></Faq>
+              <Faq q="When will I actually be charged?"><p>Checkout is available for published plans. Review the price and billing period in checkout before confirming payment. Plans marked Coming soon cannot be purchased.</p></Faq>
               <Faq q="What happens if I cancel Pro?"><p>You keep your account and all your data. Paid features switch off at the end of the billing period; your projects and history stay readable on the free tier.</p></Faq>
               <Faq q="Can I switch between monthly and yearly?"><p>Yes, switch anytime from the billing portal. Yearly works out 10% cheaper than twelve monthly payments.</p></Faq>
             </div>
@@ -257,9 +265,7 @@ export default function Pricing() {
         </Reveal>
 
         <div className="pt-10 text-center">
-          <Link to="/signin" className="btn-primary inline-flex items-center gap-2">
-            Add your first project <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+          <PortfolioCta />
         </div>
       </main>
 

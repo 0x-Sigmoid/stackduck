@@ -1,6 +1,8 @@
+import ThemeSwitcher from '../components/ThemeSwitcher'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import IntegrationLogo from '../components/IntegrationLogo'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { StackduckLockup } from '../components/Logo'
 import { api, ApiError } from '../lib/api'
 import { adoptTokens, oauthStartUrl, refreshUser, subscribeSession } from '../lib/session'
@@ -8,33 +10,51 @@ import type { OAuthKind } from '../lib/oauth'
 
 type Mode = 'signin' | 'signup'
 
+const PREVIEW_PROJECTS = [
+  { name: 'Northstar', source: 'Vercel', metric: 'Deployment ready', status: 'Healthy', attention: false },
+  { name: 'Launchpad', source: 'Stripe', metric: '$2,480 revenue', status: 'Healthy', attention: false },
+  { name: 'Relay API', source: 'Sentry', metric: '12 recent errors', status: 'Attention', attention: true },
+]
+
 function AuthVisual() {
   return (
-    <aside className="relative hidden min-h-screen overflow-hidden bg-inkwell-navy p-10 text-paper-white lg:flex lg:flex-col lg:justify-between xl:p-14">
-      <div className="absolute inset-0 opacity-30" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(#ffffff 0.7px, transparent 0.7px)', backgroundSize: '22px 22px', maskImage: 'linear-gradient(to bottom, black, transparent 75%)' }} />
-      <div className="relative z-10 flex items-center gap-2.5">
-        <StackduckLockup dark to={null} markSize={34} />
-      </div>
-      <div className="relative z-10 mx-auto w-full max-w-[560px] py-12">
-        <p className="mb-4 font-inter text-xs font-semibold uppercase tracking-[0.16em] text-mint-pulse">One clear view</p>
-        <h2 className="max-w-lg font-display text-4xl font-semibold leading-tight xl:text-5xl">Your projects,<br />all in good shape.</h2>
-        <p className="mt-4 max-w-md font-inter text-base leading-relaxed text-white/70">Health, users, errors and revenue together in one calm place.</p>
-        <div className="mt-10 rounded-2xl border border-white/15 bg-white/[0.06] p-5 backdrop-blur-sm">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
-            <div><p className="font-inter text-sm font-medium">Project health</p><p className="mt-1 font-inter text-xs text-white/55">Across your portfolio</p></div>
-            <span className="inline-flex items-center gap-2 rounded-lg border border-mint-pulse/25 bg-mint-pulse/10 px-2.5 py-1.5 font-inter text-xs font-medium text-mint-pulse"><span className="h-1.5 w-1.5 rounded-full bg-mint-pulse" />All systems normal</span>
+    <aside className="hidden min-h-screen flex-col justify-between border-r border-line bg-surface p-10 text-ink lg:flex xl:p-14">
+      <StackduckLockup to="/" markSize={32} />
+      <div className="mx-auto w-full max-w-md py-12">
+        <p className="text-xs font-medium text-ink-muted">Your portfolio, at a glance</p>
+        <h2 className="mt-3 max-w-sm font-inter text-3xl font-semibold leading-tight tracking-tight">A little clarity for<br />your whole stack.</h2>
+        <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-secondary">Keep project health, usage, and revenue in view. Pick up where you left off.</p>
+        <div className="mt-8 overflow-hidden rounded-xl border border-line bg-canvas">
+          <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+            <p className="text-sm font-semibold">Portfolio overview</p>
+            <span className="text-xs text-ink-muted">Example data</span>
           </div>
-          <div className="grid grid-cols-3 divide-x divide-white/10 py-5 text-center">
-            <div><p className="font-display text-2xl font-semibold">08</p><p className="mt-1 font-inter text-xs text-white/55">Projects</p></div>
-            <div><p className="font-display text-2xl font-semibold">99.9%</p><p className="mt-1 font-inter text-xs text-white/55">Uptime</p></div>
-            <div><p className="font-display text-2xl font-semibold">24.8k</p><p className="mt-1 font-inter text-xs text-white/55">Users</p></div>
-          </div>
-          <div className="flex h-24 items-end gap-2 border-t border-white/10 pt-4" aria-hidden="true">
-            {[28, 44, 36, 62, 48, 72, 55, 80, 61, 92, 68, 76, 58, 88, 70, 100, 78, 90].map((height, i) => <span key={i} className={`flex-1 rounded-t-sm ${i === 15 ? 'bg-coral-emphasis' : 'bg-mint-pulse/70'}`} style={{ height: `${height}%` }} />)}
+          <ul className="divide-y divide-line bg-surface">
+            {PREVIEW_PROJECTS.map(project => (
+              <li key={project.name} className="flex items-center gap-3 px-5 py-4">
+                <IntegrationLogo name={project.source} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{project.name}</p>
+                  <p className="mt-1 text-xs text-ink-muted">{project.metric}</p>
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-xs text-ink-secondary">
+                  <span aria-hidden="true" className={'size-1.5 rounded-full ' + (project.attention ? 'bg-amber-500' : 'bg-emerald-500')} />
+                  {project.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex items-center gap-2 border-t border-line px-5 py-3 text-xs text-ink-muted">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-ink-muted" />
+            One place to see what needs your attention.
           </div>
         </div>
+        <Link to="/#demo" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-link">Explore the demo<ArrowRight size={15} aria-hidden="true" /></Link>
       </div>
-      <p className="relative z-10 font-inter text-xs text-white/45">Less dashboard work. More time for the work that matters.</p>
+      <div className="flex items-center justify-between gap-4 text-xs text-ink-muted">
+        <p>Less switching. More building.</p>
+        <Link to="/docs" className="nav-link inline-flex min-h-11 items-center">Read the docs</Link>
+      </div>
     </aside>
   )
 }
@@ -90,7 +110,7 @@ interface TokenPair {
 export default function SignIn() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const [mode, setMode] = useState<Mode>('signin')
+  const [mode, setMode] = useState<Mode>(() => params.get('mode') === 'signup' ? 'signup' : 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [consent, setConsent] = useState(false)
@@ -198,9 +218,9 @@ export default function SignIn() {
   }
 
   return (
-    <main className="grid min-h-screen bg-canvas lg:grid-cols-2">
-      <section className="order-1 flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 lg:order-2">
-      <div className="relative w-full max-w-md rounded-2xl border border-line bg-elevated p-6 sm:p-8">
+    <main id="main-content" className="relative grid min-h-screen bg-canvas lg:grid-cols-[0.95fr_1.05fr]"><div className="absolute right-4 top-4 z-10"><ThemeSwitcher /></div>
+      <section className="order-1 flex min-h-screen items-center justify-center px-5 py-20 sm:px-8 lg:order-2">
+      <div className="relative w-full max-w-[400px]">
         <div className="flex items-center justify-between">
           <StackduckLockup to={null} markSize={30} />
           <Link to="/" className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 font-inter text-sm text-ink-muted transition-colors hover:bg-inset hover:text-ink"><ArrowLeft size={16} aria-hidden="true" />Home</Link>
@@ -245,6 +265,10 @@ export default function SignIn() {
               key={m}
               role="tab"
               aria-selected={mode === m}
+              id={'auth-tab-' + m}
+              aria-controls="auth-panel"
+              tabIndex={mode === m ? 0 : -1}
+              onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); const next: Mode = event.key === 'Home' ? 'signin' : event.key === 'End' ? 'signup' : mode === 'signin' ? 'signup' : 'signin'; switchMode(next); document.getElementById('auth-tab-' + next)?.focus() } }}
               onClick={() => switchMode(m)}
               className={`min-h-11 flex-1 rounded-md px-3 font-inter text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 mode === m
@@ -266,7 +290,7 @@ export default function SignIn() {
             : 'Enter your email and password to continue.'}
         </p>
 
-        <div key={mode} className="fade-swap">
+        <div id="auth-panel" role="tabpanel" aria-labelledby={'auth-tab-' + mode} key={mode} className="fade-swap">
           <div className="mt-5 flex flex-col gap-2.5">
             {(['google', 'github'] as OAuthKind[]).map((kind) => (
               <button key={kind} className="btn-ghost flex w-full items-center justify-center gap-2" disabled={busy || (isSignup && !consent)} onClick={() => void onOAuth(kind)}>

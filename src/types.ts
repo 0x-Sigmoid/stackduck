@@ -74,7 +74,7 @@ export interface MetricBucket {
   /** "2026-09-20" */
   date: string
   /** intraday points for this key/day */
-  points: Array<{ time: IsoTimestamp; value: number }>
+  points: Array<{ time: IsoTimestamp; value: number; currency?: string | null }>
   dailyAggregate?: {
     sum?: number
     avg?: number
@@ -104,6 +104,7 @@ export interface AlertRule {
   /** email address or webhook URL */
   channelTarget: string
   status: AlertStatus
+  triggeredAt?: IsoTimestamp | null
   lastTriggeredAt?: IsoTimestamp | null
   createdAt: IsoTimestamp
 }

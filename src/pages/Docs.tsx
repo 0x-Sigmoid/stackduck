@@ -1,3 +1,4 @@
+import PortfolioCta from '../components/PortfolioCta'
 import { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
@@ -37,27 +38,30 @@ export default function Docs() {
   // plain routing, so scroll to the anchor on arrival.
   const { hash } = useLocation()
   useEffect(() => {
-    if (hash) document.querySelector(hash)?.scrollIntoView()
+    if (hash) {
+      try { document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView() } catch { /* Ignore invalid fragments. */ }
+    }
   }, [hash])
 
   return (
     <div className="min-h-screen bg-canvas font-inter text-ink">
       <SiteNav active="docs" />
 
-      <main className="mx-auto max-w-5xl px-6 pb-24 pt-12 sm:pb-28 sm:pt-16">
+      <main id="main-content" className="public-page">
         <header className="max-w-3xl border-b border-line pb-8 sm:pb-10">
         <p className="font-inter text-xs font-semibold uppercase text-ink-muted">Stackduck documentation</p>
-        <h1 className="font-display font-bold text-4xl leading-[1.16] sm:text-heading-lg sm:leading-heading-lg">
-          Up and running <span className="text-coral-emphasis">in minutes.</span>
+        <h1 className="page-title">
+          A guide to your portfolio.
         </h1>
         <p className="mt-4 max-w-2xl text-body-lg leading-relaxed text-ink-secondary">
-          Concepts first, then the three-step quickstart. No agents to install, no code to rewrite.
+          Learn the monitoring workflow, connect a source, or set up your own deployment.
         </p>
         </header>
 
         <nav aria-label="On this page" className="sticky top-0 z-10 -mx-6 mt-6 border-y border-line bg-canvas/95 px-6 py-3 backdrop-blur-sm">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 font-inter text-sm font-medium">
             <span className="hidden text-xs font-semibold uppercase text-ink-muted sm:inline">On this page</span>
+            <a href="#get-started" className="nav-link">Get started</a>
             <a href="#concepts" className="nav-link">Core concepts</a>
             <a href="#quickstart" className="nav-link">Quickstart</a>
             <a href="#connectors" className="nav-link">Connectors</a>
@@ -67,9 +71,10 @@ export default function Docs() {
         </nav>
 
         <div className="max-w-4xl">
+        <section id="get-started" className="mt-10 scroll-mt-24 grid gap-6 border-b border-line pb-8 sm:grid-cols-2"><div><h2 className="text-xl font-semibold">Use this app</h2><p className="mt-3 text-sm leading-relaxed text-ink-secondary">Create an account, name a project, and connect a source. Your overview shows health, metric trends, and when data last arrived.</p><div className="mt-5"><PortfolioCta /></div></div><div className="border-t border-line pt-6 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0"><h2 className="text-xl font-semibold">Run your own copy</h2><p className="mt-3 text-sm leading-relaxed text-ink-secondary">Set up the frontend, API, database, and secrets on your own infrastructure. The self-hosting guide covers each part.</p><a href="#quickstart" className="btn-ghost mt-5">Self-hosting quickstart</a></div></section>
         <h2 id="concepts" className="mt-12 scroll-mt-24 border-b border-line pb-3 font-inter text-heading-sm font-semibold">Core concepts</h2>
         <div className="mt-4 grid gap-px overflow-hidden rounded-cards border border-line bg-line md:grid-cols-3">
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Project — your catalog entry</h3>
             <p className="mt-1 text-body-sm leading-relaxed text-ink-secondary">
               A project is the thing you run: a name plus whatever context you care about —
@@ -77,7 +82,7 @@ export default function Docs() {
               required. The catalog never gates monitoring; it's the label everything else hangs off.
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Connector — how data gets in</h3>
             <p className="mt-1 text-body-sm leading-relaxed text-ink-secondary">
               A connector authenticates against one of your backends and translates what it finds
@@ -88,7 +93,7 @@ export default function Docs() {
               or waiting for first data — independently of the project's status.
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Metric — what you actually read</h3>
             <p className="mt-1 text-body-sm leading-relaxed text-ink-secondary">
               Every data point lands in one of five buckets: users, errors, revenue, uptime, or
@@ -122,7 +127,7 @@ export default function Docs() {
           </ul>
         </div>
         <div className="mt-3">
-          <Code>{`npx degit nodedots/stackduck my-stackduck
+          <Code>{`npx degit 0x-Sigmoid/stackduck my-stackduck
 cd my-stackduck`}</Code>
         </div>
         <div className="mt-3 flex flex-col gap-3 text-body text-ink-muted">
@@ -180,7 +185,7 @@ npm run dev   # the whole UI against your local API`}</Code>
 
         <h2 id="connectors" className="mt-14 scroll-mt-24 border-b border-line pb-3 font-inter text-heading-sm font-semibold">Connectors at a glance</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Firebase</h3>
             <p className="mt-1 text-body-sm text-ink-muted">
               Paste a service-account key. Stackduck checks the connection immediately,
@@ -188,7 +193,7 @@ npm run dev   # the whole UI against your local API`}</Code>
               keys. <Link to="/docs/connect/firebase" className="text-link-emphasis text-link">Step-by-step key guide <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" /></Link>
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Generic webhook</h3>
             <p className="mt-1 text-body-sm text-ink-muted">
               For anything else — Express, Django, Rails, a cron job. We give you a URL
@@ -196,7 +201,7 @@ npm run dev   # the whole UI against your local API`}</Code>
               connector flips to connected on the first verified event. <Link to="/docs/connect/webhook" className="text-link-emphasis text-link">Signing walkthrough <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" /></Link>
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Stripe</h3>
             <p className="mt-1 text-body-sm text-ink-muted">
               Paste a restricted secret key and Stackduck checks it on the spot. Register
@@ -205,7 +210,7 @@ npm run dev   # the whole UI against your local API`}</Code>
               <Link to="/docs/connect/stripe" className="text-link-emphasis text-link">Step-by-step key guide <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" /></Link>
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Supabase</h3>
             <p className="mt-1 text-body-sm text-ink-muted">
               Paste your project URL plus the service_role secret and Stackduck checks it
@@ -217,35 +222,35 @@ npm run dev   # the whole UI against your local API`}</Code>
               <Link to="/docs/connect/supabase" className="text-link-emphasis text-link">Step-by-step key guide <ArrowRight size={14} className="ml-1 inline" aria-hidden="true" /></Link>
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Sentry</h3>
             <p className="mt-1 text-body-sm text-ink-muted">
               Add an organization and project slug plus a token with project:read access.
               Stackduck polls the project's received error-event volume for the last 24 hours.
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">GitHub Actions</h3>
             <p className="mt-1 text-body-sm text-ink-muted">
               Connect a repository and fine-grained token with read-only Actions access.
               Stackduck tracks workflow runs, failures, and in-progress runs over time.
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">PostHog</h3>
             <p className="mt-1 text-body-sm text-ink-muted">
               Enter your project ID, region, and a project-scoped personal API key. Stackduck
               reads 30-day active users and 24-hour event volume.
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Better Stack</h3>
             <p className="mt-1 text-body-sm text-ink-muted">
               Match an existing monitor by URL using a read-only Uptime API token. Stackduck
               records its current availability (up or down) on each poll.
             </p>
           </div>
-          <div className="card">
+          <div className="bg-surface p-5 sm:p-6">
             <h3 className="font-inter text-body font-semibold">Vercel</h3>
             <p className="mt-1 text-body-sm text-ink-muted">
               Provide a scoped access token and project ID (plus team ID for team projects).
@@ -259,12 +264,12 @@ npm run dev   # the whole UI against your local API`}</Code>
           <p>
             Stackduck is MIT licensed and lives at{' '}
             <a
-              href="https://github.com/nodedots/stackduck"
+              href="https://github.com/0x-Sigmoid/stackduck"
               target="_blank"
               rel="noreferrer"
               className="text-link-emphasis text-link"
             >
-              github.com/nodedots/stackduck
+              github.com/0x-Sigmoid/stackduck
             </a>
             . To run your own copy, follow <a href="#quickstart" className="text-link-emphasis text-link">Quickstart</a> above;
             a few notes that only matter once you're running it: scheduled polling and
@@ -277,7 +282,7 @@ npm run dev   # the whole UI against your local API`}</Code>
           <p>
             Bugs and ideas belong in{' '}
             <a
-              href="https://github.com/nodedots/stackduck/issues"
+              href="https://github.com/0x-Sigmoid/stackduck/issues"
               target="_blank"
               rel="noreferrer"
               className="text-link-emphasis text-link"
@@ -307,9 +312,7 @@ npm run dev   # the whole UI against your local API`}</Code>
         </div>
 
         <div className="mt-10 text-center">
-          <Link to="/signin" className="btn-primary inline-block">
-            Add your first project
-          </Link>
+          <PortfolioCta />
         </div>
         </div>
       </main>

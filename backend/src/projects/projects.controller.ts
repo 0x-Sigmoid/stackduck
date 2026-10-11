@@ -82,7 +82,7 @@ export class ProjectsController {
         const connectorStatuses = conns.map((c) => c.status);
         const latest = await this.metrics.latestPerKey(project.id, 10);
         const keyMetrics = latest.slice(0, 3).map((m) => ({
-          metricType: m.metricType, key: m.key, value: Number(m.value), at: m.at,
+          metricType: m.metricType, key: m.key, value: Number(m.value), currency: m.currency, at: m.at,
         }));
         const homeStatus = projectHomeStatus({ hasTriggeredUnresolvedAlert: breachedIds.has(project.id), connectorStatuses });
         return { project, connectorStatuses, keyMetrics, homeStatus };
@@ -151,7 +151,7 @@ export class ProjectsController {
     const connectorStatuses = conns.map((c) => c.status);
     const latest = await this.metrics.latestPerKey(projectId, 10);
     const keyMetrics = latest.slice(0, 3).map((m) => ({
-      metricType: m.metricType, key: m.key, value: Number(m.value), at: m.at,
+      metricType: m.metricType, key: m.key, value: Number(m.value), currency: m.currency, at: m.at,
     }));
     const hasTriggeredUnresolvedAlert = await this.rules.exists({
       where: { projectId, status: 'active', triggeredAt: Not(IsNull()) },

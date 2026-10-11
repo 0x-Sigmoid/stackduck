@@ -1,3 +1,4 @@
+import PortfolioCta from '../components/PortfolioCta'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Activity, ArrowRight, FolderKanban, PlugZap } from 'lucide-react'
@@ -35,13 +36,13 @@ export default function About() {
     <div className="min-h-screen bg-canvas font-inter text-ink">
       <SiteNav active="about" />
 
-      <main className="mx-auto max-w-[var(--page-max-width)] px-6 pb-24 sm:pb-28">
+      <main id="main-content" className="public-page">
         <Reveal>
           <section className="border-b border-line py-10 sm:py-14 lg:py-16">
             <div className="max-w-4xl">
               <p className="font-inter text-xs font-semibold uppercase text-ink-muted">Why Stackduck</p>
-              <h1 className="mt-4 font-display text-4xl font-bold leading-[1.12] sm:text-heading-lg sm:leading-heading-lg">
-                Too many projects.<br /><span className="text-coral-emphasis">Too many tabs.</span>
+              <h1 className="page-title">
+                Too many projects.<br /><span>Too many tabs.</span>
               </h1>
               <div className="mt-6 flex max-w-2xl flex-col gap-4 text-body leading-relaxed text-ink-secondary">
                 <p>
@@ -59,9 +60,7 @@ export default function About() {
                 </p>
               </div>
               <div className="mt-7 flex flex-wrap items-center gap-5">
-                <Link to="/signin" className="btn-primary inline-flex items-center gap-2">
-                  Add your first project <ArrowRight size={16} aria-hidden="true" />
-                </Link>
+                <PortfolioCta />
                 <Link to="/docs" className="text-link-emphasis text-link inline-flex items-center gap-1 text-sm">
                   How it works <ArrowRight size={14} aria-hidden="true" />
                 </Link>
@@ -113,7 +112,7 @@ export default function About() {
                 for anyone else running more than one thing.
               </p>
               <p className="font-medium text-ink">
-                - <button className="text-link" onClick={() => setDevOpen(true)} title="About the developer">NodeDots</button>
+                - <button className="text-link" onClick={() => setDevOpen(true)} title="About the developer">0xSigmoid</button>
               </p>
             </div>
           </section>
@@ -121,9 +120,7 @@ export default function About() {
 
         <div className="flex flex-wrap items-center justify-between gap-5 pt-8">
           <p className="text-body-sm text-ink-muted">One calm place to keep an eye on everything you build.</p>
-          <Link to="/signin" className="btn-primary inline-flex items-center gap-2">
-            Add your first project <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+          <PortfolioCta />
         </div>
       </main>
 

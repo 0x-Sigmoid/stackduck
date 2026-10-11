@@ -21,12 +21,12 @@ export default function Security() {
   return (
     <div className="min-h-screen bg-canvas font-inter text-ink">
       <SiteNav />
-      <main className="mx-auto max-w-5xl px-6 pb-24 pt-12 sm:pb-28 sm:pt-16">
+      <main id="main-content" className="public-page">
       <article className="max-w-3xl">
         <LegalNav active="security" />
         <header className="border-b border-line pb-6">
           <p className="font-inter text-xs font-semibold uppercase text-ink-muted">How your data is protected</p>
-          <h1 className="mt-2 font-display text-heading-sm font-bold sm:text-heading">Security</h1>
+          <h1 className="page-title">Security</h1>
           <p className="mt-2 font-inter text-sm text-ink-muted">Last updated: September 2026</p>
         </header>
 
@@ -74,7 +74,7 @@ export default function Security() {
           <p>
             Found a security problem? Please report it privately through{' '}
             <a
-              href="https://github.com/nodedots/stackduck/security/advisories/new"
+              href="https://github.com/0x-Sigmoid/stackduck/security/advisories/new"
               target="_blank"
               rel="noreferrer"
               className="text-link"
@@ -85,7 +85,7 @@ export default function Security() {
             expect a first response within about a week; urgent, actively-exploited
             issues jump the queue. The full policy lives in{' '}
             <a
-              href="https://github.com/nodedots/stackduck/blob/main/SECURITY.md"
+              href="https://github.com/0x-Sigmoid/stackduck/blob/main/SECURITY.md"
               target="_blank"
               rel="noreferrer"
               className="text-link"

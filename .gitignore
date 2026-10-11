@@ -15,3 +15,10 @@ dist-ssr/
 .env.local
 .env*.local
 service-account*.json
+
+# Generated browser verification screenshots
+shots/product-ui/
+
+shots/landing-ui/
+
+shots/app-ui/
