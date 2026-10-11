@@ -1,4 +1,5 @@
 import PortfolioCta from './PortfolioCta'
+import CopyButton from './CopyButton'
 import { Link } from 'react-router-dom'
 import SiteNav from './SiteNav'
 import SiteFooter from './SiteFooter'
@@ -20,9 +21,13 @@ export function Step({ n, title, children }: { n: string; title: string; childre
 
 export function Code({ children }: { children: string }) {
   return (
-    <pre className="overflow-x-auto rounded-lg border border-line-strong/30 bg-inkwell-navy p-4 font-mono text-xs leading-relaxed text-paper-white sm:p-5">
-      {children}
-    </pre>
+    <div className="overflow-hidden rounded-lg border border-line">
+      <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
+        <span className="text-xs font-medium text-ink-muted">Code</span>
+        <CopyButton value={children} label="Copy code" />
+      </div>
+      <pre className="overflow-x-auto bg-inkwell-navy p-4 font-mono text-xs leading-relaxed text-paper-white sm:p-5"><code>{children}</code></pre>
+    </div>
   )
 }
 

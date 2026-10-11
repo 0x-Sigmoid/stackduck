@@ -98,6 +98,7 @@ The steps for standing up the NestJS API are in [backend/RAILWAY.md](backend/RAI
 
 ## Project documentation
 
+- [Step-by-step deployment walkthrough](docs/deployment-walkthrough.md): from an existing Railway TimescaleDB service to a working Vercel frontend, API, OAuth, email, and monitoring
 - [Backend API](backend/README.md): the NestJS + PostgreSQL/TimescaleDB service — setup, endpoints, smoke tests
 - [Railway deployment](backend/RAILWAY.md): TimescaleDB template, environment variables, OAuth callback setup
 - [API contract](API_CONTRACT.md): Cloud Functions endpoints and payloads (historical — predates the pivot)
