@@ -9,10 +9,10 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
       - name: Typecheck
@@ -40,16 +40,19 @@ jobs:
       TEST_DATABASE_URL: postgres://stackduck:stackduck@127.0.0.1:5432/stackduck_test_ci
       TEST_REQUIRE_TIMESCALE: 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
         working-directory: backend
       - name: Typecheck
         run: node node_modules/typescript/bin/tsc --noEmit
+        working-directory: backend
+      - name: Build production API
+        run: npm run build
         working-directory: backend
       - name: Monitoring regressions and database-backed API flows
         run: npm test

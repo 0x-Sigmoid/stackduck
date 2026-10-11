@@ -110,7 +110,7 @@ export async function migrateAll(
   console.log(`wrote ${points} metric points from ${metricsSnap.size} buckets`);
 }
 
-void import('./firestore-migrate').then((m) => {
+void import('./firestore-migrate.js').then((m) => {
   if (require.main === module) void (m.main as () => Promise<void>)().catch((e) => {
     // eslint-disable-next-line no-console
     console.error(e);

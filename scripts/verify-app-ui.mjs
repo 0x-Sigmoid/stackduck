@@ -12,7 +12,7 @@ const browser = await puppeteer.launch({executablePath: process.env.CHROME_PATH 
 const page = await browser.newPage()
 const errors = []
 page.on('pageerror', error => errors.push(error.message))
-async function go(route) { await page.goto(base + route, {waitUntil:'domcontentloaded'}); await page.waitForSelector('main h1'); await page.evaluate(() => document.fonts.ready) }
+async function go(route) { await page.goto(base + route, {waitUntil:'networkidle0'}); await page.waitForSelector('main h1'); await page.evaluate(() => document.fonts.ready) }
 async function noOverflow() { assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Horizontal overflow: ' + page.url()) }
 async function shot(name, fullPage=false) { await page.evaluate(() => document.fonts.ready); await page.screenshot({path:path.join(output, name + '.png'),fullPage}) }
 async function clickText(text, selector='button') {
@@ -86,7 +86,7 @@ try {
  failPlans = false
  await clickText('Retry plans')
  await page.waitForFunction(() => document.body.textContent.includes('Coming soon'))
- assert.equal(await page.$('[role="alert"]'),null)
+ await page.waitForSelector('[role="alert"]', {hidden:true})
  await go('/signin')
  await page.focus('#auth-tab-signin'); await page.keyboard.press('ArrowRight')
  assert.equal(await page.$eval('#auth-tab-signup',element => element.getAttribute('aria-selected')), 'true')
@@ -100,6 +100,7 @@ try {
  await page.click('form button[type="submit"]')
  assert.equal((await register).status(),201)
  await page.waitForFunction(() => location.pathname === '/portfolio')
+ await go('/portfolio')
  await page.waitForSelector('button[aria-label="Import projects"]')
  await page.click('button[aria-label="Import projects"]')
  await clickText('Import from GitHub','[role="menuitem"]')

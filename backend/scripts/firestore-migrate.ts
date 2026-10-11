@@ -87,7 +87,7 @@ export async function main() {
     await ds.destroy();
     return;
   }
-  const { migrateAll } = await import('./migrate-all');
+  const { migrateAll } = await import('./migrate-all.js');
   await migrateAll(ds, fs, projectsSnap, usersSnap, metricsSnap);
   await verifyCounts(ds, expected);
   await ds.destroy();

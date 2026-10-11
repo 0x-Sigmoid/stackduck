@@ -16,6 +16,7 @@ import type {
   MetricType,
 } from '../common/types';
 import { Project } from './project.entity';
+import type { Relation } from 'typeorm';
 
 @Entity({ name: 'connectors' })
 @Index(['projectId', 'type'])
@@ -29,7 +30,7 @@ export class Connector {
 
   @ManyToOne(() => Project, (p) => p.connectors, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'project_id' })
-  project?: Project;
+  project?: Relation<Project>;
 
   @Column({ type: 'text' })
   type!: ConnectorType;

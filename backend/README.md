@@ -28,13 +28,16 @@ No Secret Manager, no GCP dependency. Secrets are never returned by any endpoint
 
 ## Local dev
 
+Use Node.js 24.9 or newer (Node 24 LTS is recommended). The TypeScript 7
+compiler builds the API; SWC preserves decorator metadata for Jest tests.
+
 ```powershell
 # 1. Start Postgres + TimescaleDB (Docker Desktop must be running)
 docker compose -f backend/docker-compose.yml up -d
 
 # 2. Install + configure
 cd backend
-npm install
+npm ci --include=dev
 copy .env.example .env   # then set CREDENTIALS_ENCRYPTION_KEY + JWT secrets
 
 # 3. Run
@@ -56,7 +59,7 @@ Schema synchronization is disabled. Development applies versioned migrations at
 startup. In production, set `NODE_ENV=production`, back up the database, then run
 `npm run build` and `npm run migrate:prod` before `npm run start:prod`.
 The API refuses to start with pending migrations. `npm run migrate:run` runs
-the same migrations from TypeScript during development.
+the same migrations after compiling the TypeScript sources during development.
 
 The baseline supports fresh databases and adopts existing tables created by the
 previous synchronization setup. The reliability migration preserves metric rows,
