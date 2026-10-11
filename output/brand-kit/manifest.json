@@ -1,0 +1,163 @@
+{
+  "brand": "Stackduck",
+  "palette": {
+    "navy": "#151b31",
+    "paper": "#f2f2f2",
+    "mint": "#A8DCC4",
+    "amber": "#F5BA67"
+  },
+  "assets": [
+    {
+      "name": "logo-256",
+      "width": 256,
+      "height": 256,
+      "usage": "App mark; transparent corners.",
+      "transparent": true,
+      "bytes": 7493
+    },
+    {
+      "name": "logo-512",
+      "width": 512,
+      "height": 512,
+      "usage": "App mark; transparent corners.",
+      "transparent": true,
+      "bytes": 17333
+    },
+    {
+      "name": "logo-1024",
+      "width": 1024,
+      "height": 1024,
+      "usage": "App mark; transparent corners.",
+      "transparent": true,
+      "bytes": 36816
+    },
+    {
+      "name": "logo-2048",
+      "width": 2048,
+      "height": 2048,
+      "usage": "App mark; transparent corners.",
+      "transparent": true,
+      "bytes": 78888
+    },
+    {
+      "name": "wordmark-on-light",
+      "width": 1600,
+      "height": 400,
+      "usage": "Transparent lockup for light backgrounds.",
+      "transparent": true,
+      "bytes": 31743
+    },
+    {
+      "name": "wordmark-on-dark",
+      "width": 1600,
+      "height": 400,
+      "usage": "Transparent lockup for dark backgrounds.",
+      "transparent": true,
+      "bytes": 29645
+    },
+    {
+      "name": "profile-400",
+      "width": 400,
+      "height": 400,
+      "usage": "Profile avatar with room for circular cropping.",
+      "transparent": false,
+      "bytes": 6867
+    },
+    {
+      "name": "profile-1024",
+      "width": 1024,
+      "height": 1024,
+      "usage": "Profile avatar with room for circular cropping.",
+      "transparent": false,
+      "bytes": 20416
+    },
+    {
+      "name": "x-cover-light",
+      "width": 1500,
+      "height": 500,
+      "usage": "X header; copy avoids the lower-left profile overlap.",
+      "transparent": false,
+      "bytes": 44060
+    },
+    {
+      "name": "x-cover-dark",
+      "width": 1500,
+      "height": 500,
+      "usage": "X header; copy avoids the lower-left profile overlap.",
+      "transparent": false,
+      "bytes": 42608
+    },
+    {
+      "name": "linkedin-cover",
+      "width": 1584,
+      "height": 396,
+      "usage": "LinkedIn personal background; 1584 x 396. Company pages use a different crop.",
+      "transparent": false,
+      "bytes": 33256
+    },
+    {
+      "name": "facebook-cover",
+      "width": 1640,
+      "height": 624,
+      "usage": "Facebook cover canvas; preview platform cropping before applying.",
+      "transparent": false,
+      "bytes": 44904
+    },
+    {
+      "name": "youtube-cover",
+      "width": 2560,
+      "height": 1440,
+      "usage": "YouTube channel banner. Essential content stays inside the centered 1546 x 423 safe area.",
+      "transparent": false,
+      "bytes": 56109
+    },
+    {
+      "name": "social-preview",
+      "width": 1200,
+      "height": 630,
+      "usage": "Link preview / Open Graph; sample portfolio illustration.",
+      "transparent": false,
+      "bytes": 76604
+    },
+    {
+      "name": "launch-landscape",
+      "width": 1600,
+      "height": 900,
+      "usage": "Launch post / press artwork; sample portfolio illustration.",
+      "transparent": false,
+      "bytes": 110314
+    },
+    {
+      "name": "press-cover",
+      "width": 1600,
+      "height": 900,
+      "usage": "Launch post / press artwork; sample portfolio illustration.",
+      "transparent": false,
+      "bytes": 111563
+    },
+    {
+      "name": "launch-square",
+      "width": 1080,
+      "height": 1080,
+      "usage": "Square feed post for Instagram, LinkedIn, X, or community announcements.",
+      "transparent": false,
+      "bytes": 84020
+    },
+    {
+      "name": "launch-portrait",
+      "width": 1080,
+      "height": 1350,
+      "usage": "Portrait 4:5 feed post.",
+      "transparent": false,
+      "bytes": 85453
+    },
+    {
+      "name": "launch-story",
+      "width": 1080,
+      "height": 1920,
+      "usage": "9:16 story / vertical promotion; key content avoids top and bottom UI bands.",
+      "transparent": false,
+      "bytes": 102500
+    }
+  ]
+}
