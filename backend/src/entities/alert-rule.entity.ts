@@ -14,6 +14,7 @@ import type {
   MetricType,
 } from '../common/types';
 import { Project } from './project.entity';
+import type { Relation } from 'typeorm';
 
 @Entity({ name: 'alert_rules' })
 @Index(['projectId'])
@@ -26,7 +27,7 @@ export class AlertRule {
 
   @ManyToOne(() => Project, (p) => p.alertRules, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'project_id' })
-  project?: Project;
+  project?: Relation<Project>;
 
   @Column({ name: 'metric_type', type: 'text' })
   metricType!: MetricType;

@@ -39,14 +39,14 @@ An initial deployment may fail while settings are incomplete; finish these setti
 | Setting | Value |
 | --- | --- |
 | Root Directory | `/backend` |
-| Railway Config File, if shown | `/backend/railway.json` |
-| Build Command | `npm install && npm run build` |
+| Builder | Railpack (keep the current default) |
+| Build Command | `npm ci --include=dev && npm run build` |
 | Pre-deploy Command | `npm run migrate:prod` |
 | Start Command | `npm run start:prod` |
 | Healthcheck Path | `/v1/health` |
 | Replicas | `1` |
 
-The root directory matters: the repository root builds the frontend; `/backend` builds the API. The config-file path is relative to the repository root, not the service root. The existing config file supplies build/start/healthcheck settings, but currently does not supply a pre-deploy command; add that command in Railway's deployment settings.
+The root directory matters: the repository root builds the frontend; `/backend` builds the API. Enter the commands and healthcheck directly in the dashboard. Your new service's Settings notice says Config as Code is deprecated and new services cannot opt in; leave Railway Config File unset. The repository's `backend/railway.json` is a legacy configuration, not a required step for this dashboard setup.
 
 Keep Serverless/App Sleeping disabled on the API. Its scheduled jobs run inside the server process, so a sleeping server will miss polling and alert evaluation. Keep one replica for now: there is no distributed scheduler lock preventing multiple replicas from running the same jobs.
 
@@ -60,7 +60,7 @@ On your computer, open PowerShell. Confirm Node is installed:
 node --version
 ```
 
-If the command is missing, install a current Node.js LTS release from https://nodejs.org and reopen PowerShell. The repository requires Node 20 or newer.
+If the command is missing, install a current Node.js LTS release from https://nodejs.org and reopen PowerShell. The repository requires Node 24.9 or newer (use the Node 24 LTS release).
 
 Run this command for the JWT secret:
 

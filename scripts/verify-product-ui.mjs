@@ -71,6 +71,7 @@ async function screenshot(name) {
   await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true })
 }
 async function overflow() {
+  await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth + 1)
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Horizontal viewport overflow')
 }
 async function theme(value) {

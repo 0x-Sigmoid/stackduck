@@ -1,6 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -138,7 +138,7 @@ export class AuthService {
       { sub: user.id, email: user.email },
       {
         secret: this.config.get<string>('JWT_ACCESS_SECRET'),
-        expiresIn: this.config.get<string>('JWT_ACCESS_TTL') ?? '15m',
+        expiresIn: this.config.get<JwtSignOptions['expiresIn']>('JWT_ACCESS_TTL') ?? '15m',
       },
     );
     const opaque = crypto.randomBytes(48).toString('hex');

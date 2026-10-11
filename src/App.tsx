@@ -122,7 +122,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   )
 }
 
-function RequireAuth({ user, children }: { user: BackendUser | null | undefined; children: JSX.Element }) {
+function RequireAuth({ user, children }: { user: BackendUser | null | undefined; children: React.JSX.Element }) {
   const navigate = useNavigate()
   useEffect(() => {
     if (user === null) navigate('/signin')

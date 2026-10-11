@@ -51,6 +51,9 @@ jobs:
       - name: Typecheck
         run: node node_modules/typescript/bin/tsc --noEmit
         working-directory: backend
+      - name: Build production API
+        run: npm run build
+        working-directory: backend
       - name: Monitoring regressions and database-backed API flows
         run: npm test
         working-directory: backend

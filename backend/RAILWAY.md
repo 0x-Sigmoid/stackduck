@@ -23,11 +23,14 @@ use the **TimescaleDB template**, not the plain Postgres one).
 ## 2. API service
 
 1. **New → GitHub Repo** (or Empty Service + `railway up`), root directory
-   `backend/`. Build: `npm install && npm run build`. Start: `npm run start:prod`.
+   `/backend`. Keep Railpack as the builder and use Node 24 LTS.
+   Build: `npm ci --include=dev && npm run build`. Start: `npm run start:prod`.
    Run `npm run migrate:prod` as the release step after the build and before
    starting the API. Set `NODE_ENV=production`; startup refuses pending migrations.
    Back up existing databases before the first migration.
-   Add `backend/railway.json` (nixpacks) if the UI asks for explicit commands.
+   Enter these commands directly in the dashboard. New services cannot opt
+   into the deprecated Config as Code feature; leave Railway Config File unset.
+   The existing `backend/railway.json` is for legacy services only.
 2. **Variables** (all in Railway → API service → Variables; nothing hardcoded,
    nothing committed — `.env` is gitignored and `.env.example` is the schema):
    - `DATABASE_URL` — reference the TimescaleDB service (`${{TimescaleDB.DATABASE_URL}}`)
