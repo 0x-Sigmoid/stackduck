@@ -61,7 +61,7 @@
     "typescript": "^7.0.2",
     "@swc/core": "^1.16.18",
     "@swc/jest": "^0.2.39",
-    "concurrently": "^9.0.0"
+    "concurrently": "^10.0.6"
   },
   "jest": {
     "testEnvironment": "node",
